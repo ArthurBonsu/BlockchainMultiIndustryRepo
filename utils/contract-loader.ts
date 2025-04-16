@@ -2,15 +2,9 @@ import Web3 from 'web3';
 import { Contract } from 'web3-eth-contract';
 import fs from 'fs';
 import path from 'path';
-import contractConfig from '../config/contract_addresses.json';
+import contractAddresses from '../config/contract_addresses.json';
 
-// Flexible contract configuration interface
-interface ContractConfig {
-  address: string;
-  abi?: string;
-}
-
-// Enhanced PasschainContract interface to be more compatible
+// Enhanced PasschainContract interface
 export interface PasschainContract {
   address: string;
   methods: {
@@ -25,18 +19,16 @@ export interface PasschainContract {
   _address: string;
 }
 
-// Type guard to check if a contract is a PasschainContract
-function isPasschainContract(contract: any): contract is PasschainContract {
-  return contract && 
-         typeof contract.address === 'string' && 
-         typeof contract.methods === 'object' && 
-         typeof contract.options === 'object';
+// Flexible contract configuration interface
+interface ContractConfig {
+  address: string;
+  abi?: any; // Make ABI optional
 }
 
 // Helper function to convert Web3 Contract to PasschainContract
-function convertToPasschainContract(contract: Contract<any>): PasschainContract {
+function convertToPasschainContract(contract: any): PasschainContract {
   // Ensure address is always a non-empty string
-  const contractAddress = contract.options.address;
+  const contractAddress = contract.options?.address;
   
   if (!contractAddress) {
     throw new Error('Contract address is undefined or empty');
@@ -51,6 +43,20 @@ function convertToPasschainContract(contract: Contract<any>): PasschainContract 
     _address: contractAddress
   };
 }
+
+// Convert simple address mapping to ContractConfig
+const convertToContractConfig = (addresses: { [key: string]: string }): { [key: string]: ContractConfig } => {
+  return Object.fromEntries(
+    Object.entries(addresses).map(([contractName, address]) => [
+      contractName, 
+      { 
+        address, 
+        // Optionally load ABI dynamically if needed
+        // abi: findContractArtifact(contractName)?.abi 
+      }
+    ])
+  );
+};
 
 // Helper function to find contract artifact
 const findContractArtifact = (contractName: string, buildDir: string = path.join(__dirname, '..', 'build', 'contracts')): any | null => {
@@ -77,7 +83,7 @@ const findContractArtifact = (contractName: string, buildDir: string = path.join
 
 export const loadContracts = (
   web3: Web3, 
-  config: { [key: string]: ContractConfig } = contractConfig,
+  config: { [key: string]: ContractConfig } = convertToContractConfig(contractAddresses),
   buildDir: string = path.join(__dirname, '..', 'build', 'contracts')
 ): { [key: string]: PasschainContract } => {
   const contracts: { [key: string]: PasschainContract } = {};
@@ -104,7 +110,7 @@ export const loadContracts = (
       const web3Contract = new web3.eth.Contract(
         contractArtifact.abi, 
         contractConfig.address
-      );
+      ) as any; // Use type assertion to bypass strict typing
 
       // Validate contract instance has an address
       if (!web3Contract.options.address) {
@@ -130,6 +136,7 @@ export const loadContracts = (
   return contracts;
 };
 
+// Optional utility functions
 export const logContractDetails = (contracts: { [key: string]: PasschainContract }) => {
   console.log('\n--- Contract Details ---');
   Object.entries(contracts).forEach(([name, contract]) => {
@@ -137,18 +144,4 @@ export const logContractDetails = (contracts: { [key: string]: PasschainContract
     console.log(`Address: ${contract.address || contract.options.address}`);
     console.log('---');
   });
-};
-
-// Additional utility for type checking and conversion
-export const ensurePasschainContract = (contract: any): PasschainContract => {
-  if (isPasschainContract(contract)) {
-    return contract;
-  }
-  
-  // If it's a Web3 Contract, convert it
-  if (contract && contract.options && contract.options.address) {
-    return convertToPasschainContract(contract);
-  }
-  
-  throw new Error('Unable to convert contract to PasschainContract');
 };

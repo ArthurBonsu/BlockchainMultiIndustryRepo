@@ -1,34 +1,28 @@
-// migrations/12_initial_migration.js
 const BCADN = artifacts.require("BCADN");
-const ProactiveDefenseMechanism = artifacts.require("ProactiveDefenseMechanism");
-const NodeTypes = artifacts.require("NodeTypes");  // If you have this as a separate contract
+const ProactiveDefenseMechanism = artifacts.require("ProactiveDefenseMechanism"); 
+
+// Helper function to add delay
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 module.exports = async function(deployer, network, accounts) {
   try {
-    // Deploy NodeTypes if it's a separate contract
-    // await deployer.deploy(NodeTypes);
-
-    // Deploy BCADN contract
+    // Deploy BCADN contract 
     await deployer.deploy(BCADN);
-
+    await delay(5000);  // Add a 5-second delay between deployments
+    
     // Deploy Proactive Defense Mechanism
     await deployer.deploy(
       ProactiveDefenseMechanism, 
-      30,    // anomalyThreshold 
+      30,    // anomalyThreshold
       86400  // baselineUpdateInterval (1 day in seconds)
     );
-
-    // Optional additional contracts you might want to deploy
-    // const BCNetworkMonitor = artifacts.require("BCNetworkMonitor");
-    // const DynamicNodeWeighting = artifacts.require("DynamicNodeWeighting");
-    // const BCShardingManager = artifacts.require("BCShardingManager");
-    // const AnomalyDetection = artifacts.require("AnomalyDetection");
-    // const ProbabilityGap = artifacts.require("ProbabilityGap");
-    // const BCTransactionProcessor = artifacts.require("BCTransactionProcessor");
-
+    
     console.log(`Deployment completed for network: ${network}`);
   } catch (error) {
     console.error('Deployment error:', error);
-    throw error;
+    throw error; 
   }
 };
+
+// Etherscan https://sepolia.etherscan.io/tx/0x3326b4c25c1ae0b7d6db118e86c095f30c9caf052430043ed62955b74abc49c6
+//https://sepolia.etherscan.io/block/8118449#consensusinfo

@@ -1,29 +1,37 @@
 {
-    "CityRegister": {
-        "address": "0x17e9ddb311061ba9FA3a6ea517A934cc0D136f27"
-    },
-    "CompanyRegister": {
-        "address": "0x81aDCd0724dA5Da4b796d51c09123B53A4705D3F"
-    },
-    "CityEmissionsContract": {
-        "address": "0x723332E981Ddd2577954c0e15998e66A4929b1E8"
-    },
-    "RenewalTheoryContract": {
-        "address": "0x710CcD32bbD9b108ef3FdE8178F0E5dB94DCb478"
-    },
-    "CarbonCreditMarket": {
-        "address": "0x16F6278FBae0Fa873366628118425c34Bbb1C8c0"
-    },
-    "CityHealthCalculator": {
-        "address": "0xa87d6005E919f04324E7E351fa7d988E28C1Ef03"
-    },
-    "TemperatureRenewalContract": {
-        "address": "0xC2E69562926Ad558D982DD09238d64a60D515F48"
-    },
-    "ClimateReduction": {
-        "address": "0x3B076CD48b43d99A30C7857b37704C314C0e7171"
-    },
-    "MitigationContract": {
-        "address": "0xD78652eEe39D0bF625340a3CA0cE5696A7625d15"
-    }
+  "BlockchainRegistryBase": "0x4342194bf37C4d545168B913EE97c63490eD021d",
+  "BlockchainRegistry": "0x3C446b0a7037Cf885c49eA0d8af3a8120daF7c62",
+  "BlockchainMonitor": "0x172565114eCb3364Fd484F1bD7e17BDb67583FF9",
+  "ChaCha20Poly1305": "0x91aCb8b84DAbF24EE01516CdD3EEE08647B42266",
+  "MetadataParser": "0xd048D19E436EAc21Fa4abb91462C5c24Aee076eD",
+  "PacechainChannel": "0x9Cc32A27872dD513844E519967d26068e6449ca6",
+  "SpeculativeTransactionHandler": "0x705090bB7158D832bF96587D28D2590e768dA268",
+  "ConfidenceScoreCalculator": "0x16Fe03ab5A991583E9D883e492D2CE269Bf592f9",
+  "AssetTransferProcessor": "0x3A6Ac187683434572D6CF8aE481358e600A027CC",
+  "TransactionValidator": "0x23B25647EB0d855e416e6dA667FD76241F3f2070",
+  "RewardToken": "0x6D091CBaa64934f57850673ea349473d506B0FfC",
+  "RewardDistributor": "0x626d2B536FbEaBd2D79fFbe7dbb6c5ed73E6afcd",
+  "ProofOfStakeValidator": "0x3D79187412b18042F89AAf925Ca664a8FCBF377b",
+  "StateManager": "0xb0Dd56E61531e701ed79E138A0330D2c5ef97e63",
+  "TransactionRelay": "0x23c1748F4977cA95b86AfA588387b591Ce695380",
+  "ReceivingBlockchainInterface": "0xf11a6cFE7705a81A604DC2759E611d1870c5E917",
+  "UncertaintyAnalytics": "0x42f78A4Be745cF6767D72028d14D2788a51c779e",
+  "ResponseManager": "0xE679C017F59268B0d8F74069b96B5d9E30741aD2",
+  "RequestManager": "0x68c0808F0b143b0Db6a7e69882A6b20f64B14247",
+  "CityRegister": "0x17e9ddb311061ba9FA3a6ea517A934cc0D136f27",
+  "CompanyRegister": "0x81aDCd0724dA5Da4b796d51c09123B53A4705D3F",
+  "CityEmissions": "0x723332E981Ddd2577954c0e15998e66A4929b1E8",
+  "RenewalTheory": "0x710CcD32bbD9b108ef3FdE8178F0E5dB94DCb478",
+  "CarbonCreditMarket": "0x16F6278FBae0Fa873366628118425c34Bbb1C8c0",
+  "CityHealth": "0xa87d6005E919f04324E7E351fa7d988E28C1Ef03",
+  "TemperatureRenewal": "0xC2E69562926Ad558D982DD09238d64a60D515F48",
+  "ClimateReduction": "0x3B076CD48b43d99A30C7857b37704C314C0e7171",
+  "Mitigation": "0xD78652eEe39D0bF625340a3CA0cE5696A7625d15",
+  "ProactiveDefenseMechanism": "0xa67cb4e026626940407680f3fbe29f365427be33",
+  "BCADN": "0xf95a9e6ecf473594794c9cedd0da896dec73cee0",
+  "NIDRegistry": "0x38Ab0B91f2bBD8bA57d584E33375696aB2CF0d6f",
+  "NIASRegistry": "0xFB61F22BacF92C32a3Fa4ECcF6DB5c12Eb71654d", 
+  "ABATLTranslation": "0x71db4933bf0342b290ada075b9b40f61Cac4A88D",
+  "SequencePathRouter": "0x56e3b418E151A6a70262f337b5c4115415dB2592",
+  "ClusteringContract": "0x3dB865F0181A652EE731adf92557677D609f4705"
 }

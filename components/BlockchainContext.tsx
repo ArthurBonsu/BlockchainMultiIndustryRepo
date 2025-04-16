@@ -10,6 +10,7 @@ import { createTatumBlockchainService, TatumConnectionOptions } from '../service
 import { TatumConstants } from '../config/tatum-config';
 import { BlockchainService } from '../services/blockchain-service';
 import { CrossChainService, CrossChainTransactionData } from '../services/cross-chain-service';
+// Existing type definitions
 
 // Comprehensive Connection Options
 interface ConnectionOptions {
@@ -43,17 +44,18 @@ interface BlockchainContextType {
   } | null;
 }
 
-// Existing type definitions
-type ContractType = (Contract<any> & { 
+
+
+// Updated type definition
+type ContractType = Contract<any> & {
   options?: { 
     address?: string 
-  }; 
-}) | (PasschainContract & {
+  };
+} | (PasschainContract & {
   options?: { 
     address?: string 
   };
 });
-
 interface NetworkSwitchOptions {
   chainId?: number;
   networkName?: string;
