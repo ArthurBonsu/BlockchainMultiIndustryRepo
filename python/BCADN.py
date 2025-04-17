@@ -381,12 +381,45 @@ class BCADNNetworkAnalyzer:
         return self.contracts
 
     def load_sample_data(self):
-        """Load sample data into BCADN contracts"""
+        """Load sample data into BCADN contracts from CSV files"""
         # Determine paths
         script_dir = os.path.dirname(os.path.abspath(__file__))
         project_root = os.path.abspath(os.path.join(script_dir, '..'))
-        contract_addresses_path = os.path.join(project_root, 'config', 'contract_addresses.json')
-        build_contracts_dir = os.path.join(project_root, 'build', 'contracts')
+        
+        # Define expected CSV files in project root
+        nodes_csv = os.path.join(project_root, 'sample_nodes.csv')
+        attacks_csv = os.path.join(project_root, 'sample_attacks.csv')
+        
+        # Validate CSV files exist
+        if not os.path.exists(nodes_csv):
+            raise FileNotFoundError(f"Nodes CSV file not found at: {nodes_csv}")
+        if not os.path.exists(attacks_csv):
+            raise FileNotFoundError(f"Attacks CSV file not found at: {attacks_csv}")
+
+        # Load data from CSV files
+        try:
+            # Load nodes data
+            nodes_df = pd.read_csv(nodes_csv)
+            required_node_columns = {'address', 'performance', 'reliability'}
+            if not required_node_columns.issubset(nodes_df.columns):
+                missing = required_node_columns - set(nodes_df.columns)
+                raise ValueError(f"Missing required columns in nodes CSV: {missing}")
+            
+            # Convert to list of dicts
+            sample_nodes = nodes_df.to_dict('records')
+            
+            # Load attacks data
+            attacks_df = pd.read_csv(attacks_csv)
+            required_attack_columns = {'node', 'anomaly_score', 'attack_type'}
+            if not required_attack_columns.issubset(attacks_df.columns):
+                missing = required_attack_columns - set(attacks_df.columns)
+                raise ValueError(f"Missing required columns in attacks CSV: {missing}")
+            
+            sample_attacks = attacks_df.to_dict('records')
+            
+        except Exception as e:
+            self.logger.error(f"Error loading CSV data: {e}")
+            raise
 
         # Create Web3 connection
         web3 = create_web3_connection()
@@ -396,107 +429,93 @@ class BCADNNetworkAnalyzer:
         # Load contracts
         analyzer = BCADNNetworkAnalyzer(
             web3=web3,
-            contract_addresses_path=contract_addresses_path,
-            build_contracts_dir=build_contracts_dir
+            contract_addresses_path=os.path.join(project_root, 'config', 'contract_addresses.json'),
+            build_contracts_dir=os.path.join(project_root, 'build', 'contracts')
         )
-        loaded_contracts = analyzer.load_bcadn_contracts()
         
+        loaded_contracts = analyzer.load_bcadn_contracts()
         if not loaded_contracts:
             raise ValueError("Failed to load contracts")
 
         bcadn_contract = loaded_contracts.get("BCADN", {}).get("contract")
-        proactive_defense_contract = loaded_contracts.get("ProactiveDefenseMechanism", {}).get("contract")
+        if not bcadn_contract:
+            raise ValueError("BCADN contract not loaded")
 
-        if not bcadn_contract or not proactive_defense_contract:
-            raise ValueError("Required contracts not loaded")
-
-        # Sample node data (Sepolia test addresses)
-        sample_nodes = [
-            {
-                'address': '0x1234567890123456789012345678901234567891',
-                'performance': 85,
-                'reliability': 90
-            },
-            {
-                'address': '0x2345678901234567890123456789012345678902',
-                'performance': 75,
-                'reliability': 80
-            }
-        ]
-
-        # Sample attack data
-        sample_attacks = [
-            {
-                'node': '0x1234567890123456789012345678901234567891',
-                'anomaly_score': 45,
-                'attack_type': 'Potential Spam'
-            }
-        ]
-
-        def send_transaction(tx_func, tx_args=None):
+        # Validate and process nodes
+        valid_nodes = []
+        for node in sample_nodes:
             try:
-                # Get private key from environment
-                private_key = os.getenv('PRIVATE_KEY')
-                if not private_key:
-                    raise ValueError("No private key found in environment variables")
+                # Validate address format
+                validated_address = analyzer.validate_ethereum_address(node['address'])
+                valid_nodes.append({
+                    'address': validated_address,
+                    'performance': int(node['performance']),
+                    'reliability': int(node['reliability'])
+                })
+            except (ValueError, KeyError) as e:
+                self.logger.warning(f"Skipping invalid node data: {node}. Error: {e}")
 
-                # Prepare transaction
-                if tx_args is None:
-                    tx = tx_func().build_transaction({
-                        'from': web3.eth.default_account,
-                        'nonce': web3.eth.get_transaction_count(web3.eth.default_account),
-                        'gas': 200000,
-                        'gasPrice': web3.eth.gas_price,
-                        'chainId': web3.eth.chain_id
-                    })
+        # Validate and process attacks
+        valid_attacks = []
+        for attack in sample_attacks:
+            try:
+                validated_node = analyzer.validate_ethereum_address(attack['node'])
+                valid_attacks.append({
+                    'node': validated_node,
+                    'anomaly_score': int(attack['anomaly_score']),
+                    'attack_type': str(attack['attack_type'])
+                })
+            except (ValueError, KeyError) as e:
+                self.logger.warning(f"Skipping invalid attack data: {attack}. Error: {e}")
+
+        # Register nodes
+        self.logger.info(f"Registering {len(valid_nodes)} nodes...")
+        for node in valid_nodes:
+            try:
+                self.logger.info(f"Registering node: {node['address']}")
+                tx_hash = bcadn_contract.functions.registerNode(
+                    node['address'],
+                    node['performance'],
+                    node['reliability']
+                ).transact({'from': web3.eth.default_account})
+                
+                # Wait for transaction receipt
+                receipt = web3.eth.wait_for_transaction_receipt(tx_hash)
+                if receipt.status == 1:
+                    self.logger.info(f"Node {node['address']} registered successfully")
                 else:
-                    tx = tx_func(*tx_args).build_transaction({
-                        'from': web3.eth.default_account,
-                        'nonce': web3.eth.get_transaction_count(web3.eth.default_account),
-                        'gas': 200000,
-                        'gasPrice': web3.eth.gas_price,
-                        'chainId': web3.eth.chain_id
-                    })
-                
-                # Sign the transaction
-                signed_txn = web3.eth.account.sign_transaction(tx, private_key=private_key)
-                
-                # Send the transaction using raw_transaction
-                tx_hash = web3.eth.send_raw_transaction(signed_txn.raw_transaction)
-                
-                try:
-                    # Wait for transaction receipt with a shorter timeout
-                    tx_receipt = web3.eth.wait_for_transaction_receipt(tx_hash, timeout=30)
-                    
-                    # Check transaction status
-                    if tx_receipt and tx_receipt['status'] == 1:
-                        print(f"Transaction successful: {tx_receipt.status}")
-                        return tx_receipt
-                    else:
-                        print(f"Transaction failed: {tx_receipt.status}")
-                        return None
-                
-                except web3.exceptions.TimeExhausted:
-                    print(f"Transaction {tx_hash.hex()} timed out. Checking transaction status...")
-                    
-                    # Check if transaction is pending or mined
-                    try:
-                        tx_status = web3.eth.get_transaction_receipt(tx_hash)
-                        if tx_status:
-                            print(f"Transaction mined: Status {tx_status['status']}")
-                            return tx_status
-                        else:
-                            print("Transaction not found in the blockchain.")
-                            return None
-                    except Exception as status_error:
-                        print(f"Error checking transaction status: {status_error}")
-                        return None
-            
+                    self.logger.error(f"Failed to register node {node['address']}")
             except Exception as e:
-                print(f"Transaction error: {e}")
-                import traceback
-                traceback.print_exc()
-                return None
+                self.logger.error(f"Error registering node {node['address']}: {e}")
+
+        # Record attacks
+        self.logger.info(f"Recording {len(valid_attacks)} attacks...")
+        for attack in valid_attacks:
+            try:
+                self.logger.info(f"Recording attack for node: {attack['node']}")
+                tx_hash = bcadn_contract.functions.recordAnomaly(
+                    attack['node'],
+                    attack['anomaly_score'],
+                    attack['attack_type']
+                ).transact({'from': web3.eth.default_account})
+                
+                # Wait for transaction receipt
+                receipt = web3.eth.wait_for_transaction_receipt(tx_hash)
+                if receipt.status == 1:
+                    self.logger.info(f"Attack recorded successfully for {attack['node']}")
+                else:
+                    self.logger.error(f"Failed to record attack for {attack['node']}")
+            except Exception as e:
+                self.logger.error(f"Error recording attack for {attack['node']}: {e}")
+
+        self.logger.info("Sample data loading complete!")
+        return {
+            'nodes_registered': len(valid_nodes),
+            'attacks_recorded': len(valid_attacks),
+            'invalid_nodes': len(sample_nodes) - len(valid_nodes),
+            'invalid_attacks': len(sample_attacks) - len(valid_attacks)
+        }
+        
 
     def analyze_network_performance(self) -> Dict[str, Any]:
         """
