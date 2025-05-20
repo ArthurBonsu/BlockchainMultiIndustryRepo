@@ -1,55 +1,38 @@
 import os
 import sys
 import json
+import logging
+from typing import Dict, Any, Optional
 import time
 import random
-import logging
-from typing import Dict, List, Any, Optional, Tuple
-from dotenv import load_dotenv
 
 from web3 import Web3, HTTPProvider
-from eth_account import Account
-import matplotlib.pyplot as plt
-import pandas as pd
-import numpy as np
-
+from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
 
-# Configuration
-RESULT_OUTPUT_DIR = "results/bcadn_analysis"
-os.makedirs(RESULT_OUTPUT_DIR, exist_ok=True)
-
-
-class BCADNNetworkAnalyzer:
+class BCADNAnalyzer:
     def __init__(
-        self,
-        web3: Web3,
-        contract_addresses_path: Optional[str] = None,
+        self, 
+        web3: Web3, 
+        contract_address: str,
         build_contracts_dir: Optional[str] = None,
+        project_root: Optional[str] = None
     ):
         """
-        Initialize BCADN Network Analyzer
-
-        :param web3: Web3 instance
-        :param contract_addresses_path: Path to contract addresses JSON
-        :param build_contracts_dir: Directory containing contract build artifacts
+        Initialize BCADN Analyzer
         """
         # Setup logging
         logging.basicConfig(
-            level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+            level=logging.INFO, 
+            format="%(asctime)s - %(levelname)s - %(message)s"
         )
         self.logger = logging.getLogger(__name__)
 
         # Determine project root and default paths
-        self.project_root = os.path.abspath(
+        self.project_root = project_root or os.path.abspath(
             os.path.join(os.path.dirname(__file__), "..")
-        )
-
-        # Contract addresses file
-        self.contract_addresses_path = contract_addresses_path or os.path.join(
-            self.project_root, "config", "contract_addresses.json"
         )
 
         # Build contracts directory
@@ -60,842 +43,2028 @@ class BCADNNetworkAnalyzer:
         # Blockchain connection
         self.w3 = web3
 
-        # Load contract addresses and configurations
-        self.contract_addresses = self._load_contract_addresses()
+        # Contract details
+        self.contract_address = Web3.to_checksum_address(contract_address)
+        self.contract = None
+        self.abi = None
+        
+        # Mock data for testing
+        self.mock_nodes = {}
+        self.mock_shards = {}
+        self.mock_transactions = {}
+        self.mock_anomalies = []
 
-        # BCADN-specific contracts to load
-        self.bcadn_contract_names = ["BCADN", "ProactiveDefenseMechanism"]
-
-        # Contracts storage
-        self.contracts: Dict[str, Any] = {}
-
-    def _load_contract_addresses(self) -> Dict[str, str]:
+    def _load_contract_abi(self, contract_name: str = "BCADN") -> Optional[list]:
         """
-        Load contract addresses from JSON file
-
-        :return: Dictionary of contract addresses
+        Load ABI for the BCADN contract
         """
-        try:
-            with open(self.contract_addresses_path, "r") as f:
-                raw_addresses = json.load(f)
-
-            self.logger.info(
-                f"Loaded contract addresses from {self.contract_addresses_path}"
-            )
-            return raw_addresses
-        except FileNotFoundError:
-            self.logger.error(
-                f"Contract addresses file not found at {self.contract_addresses_path}"
-            )
-            return {}
-        except json.JSONDecodeError:
-            self.logger.error(
-                f"Invalid JSON in contract addresses file at {self.contract_addresses_path}"
-            )
-            return {}
-
-    def _load_contract_abi(self, contract_name: str) -> Optional[List[Dict[str, Any]]]:
-        """
-        Load ABI for a given contract name.
-
-        :param contract_name: Name of the contract to load ABI for
-        :return: ABI as a list of dictionaries, or None if not found
-        """
-        # Define possible ABI paths
         abi_paths = [
             os.path.join(self.build_contracts_dir, f"{contract_name}.json"),
-            # Add other possible ABI paths here
+            os.path.join(self.build_contracts_dir, "N2N", f"{contract_name}.json"),
         ]
 
         for abi_path in abi_paths:
             try:
                 if os.path.exists(abi_path):
                     with open(abi_path, "r") as f:
-                        # Read the entire file content
                         content = f.read()
-
-                        # Try parsing as JSON
+                        
                         try:
                             contract_data = json.loads(content)
 
-                            # Multiple possible ABI locations in JSON
                             possible_abi_keys = [
-                                "abi",  # Truffle/Hardhat standard
-                                "contractName",  # Alternative key
-                                "compilerOutput",  # Another possible location
-                                "output",  # Yet another possible key
+                                "abi", "contractName", "compilerOutput", "output"
                             ]
 
-                            # Try each possible key
                             for key in possible_abi_keys:
-                                if (
-                                    isinstance(contract_data, dict)
-                                    and key in contract_data
-                                ):
+                                if isinstance(contract_data, dict) and key in contract_data:
                                     abi = contract_data[key]
-
-                                    # Ensure it's a list of ABI entries
+                                    
                                     if isinstance(abi, list):
-                                        print(
-                                            f"Successfully loaded ABI for {contract_name} from {abi_path}"
-                                        )
-
-                                        # Optional: Print out available function names
+                                        print(f"Successfully loaded ABI from {abi_path}")
+                                        
                                         function_names = [
                                             func.get("name", "unnamed")
                                             for func in abi
                                             if func.get("type") == "function"
                                         ]
-                                        print(
-                                            f"Available functions in {contract_name}: {function_names}"
-                                        )
-
+                                        print(f"Available functions: {function_names}")
+                                        
                                         return abi
 
-                            # If no key worked, check if entire content is ABI
                             if isinstance(contract_data, list):
                                 return contract_data
 
                         except json.JSONDecodeError:
-                            # Fallback: try parsing raw content
-                            try:
-                                raw_abi = json.loads(content)
-                                if isinstance(raw_abi, list):
-                                    return raw_abi
-                            except:
-                                self.logger.warning(
-                                    f"Could not parse JSON from {abi_path}"
-                                )
+                            self.logger.warning(f"Could not parse JSON from {abi_path}")
 
             except Exception as e:
                 self.logger.warning(f"Error reading ABI at {abi_path}: {e}")
 
-        self.logger.error(f"No ABI found for contract: {contract_name}")
+        self.logger.error(f"No ABI found for contract")
         return None
 
-    def validate_ethereum_address(self, address: str) -> str:
+    def load_contract(self) -> Dict[str, Any]:
         """
-        Validate an Ethereum address and return checksum version if valid
-
-        :param address: Ethereum address to validate
-        :return: Checksum address if valid, raises ValueError if invalid
+        Load BCADN contract with comprehensive verification
         """
-        try:
-            if not address or address == "0x0":
-                raise ValueError("Empty or zero address provided")
-
-            checksum_address = Web3.to_checksum_address(address)
-            if not Web3.is_address(checksum_address):
-                raise ValueError(f"Invalid Ethereum address format: {address}")
-
-            return checksum_address
-        except Exception as e:
-            raise ValueError(f"Address validation error: {str(e)}")
-
-    def verify_contract_state(self, contract_address: str) -> bool:
-        """
-        Verify contract is properly deployed and accessible
-
-        :param contract_address: Contract address to verify
-        :return: Boolean indicating if contract is properly deployed
-        """
-        try:
-            code = self.w3.eth.get_code(contract_address)
-            return len(code) > 0
-        except Exception as e:
-            self.logger.error(f"Contract state verification failed: {e}")
-            return False
-
-    def load_bcadn_contracts(self) -> Dict[str, Any]:
-        """
-        Load BCADN-related contracts with comprehensive verification
-
-        :return: Dictionary of loaded contracts
-        """
-        self.logger.info("Loading BCADN-related contracts")
-
-        # Verify web3 connection first
         if not self.w3.is_connected():
             raise ConnectionError("No Web3 connection available")
 
-        # Verify default account is set
-        if not self.w3.eth.default_account:
-            self.logger.warning(
-                "No default account set. Some functions may not work properly."
+        self.abi = self._load_contract_abi()
+        if not self.abi:
+            raise ValueError("Could not load contract ABI")
+
+        try:
+            self.contract = self.w3.eth.contract(
+                address=self.contract_address, 
+                abi=self.abi
             )
 
-        for contract_name in self.bcadn_contract_names:
-            try:
-                # Get and validate contract address
-                raw_address = self.contract_addresses.get(contract_name)
+            print("\n--- BCADN Contract Verification ---")
+            print(f"Contract Address: {self.contract_address}")
+            print(f"Network: {self.w3.eth.chain_id}")
 
+            contract_bytecode = self.w3.eth.get_code(self.contract_address)
+            bytecode_length = len(contract_bytecode)
+            print(f"Contract Bytecode Length: {bytecode_length}")
+
+            function_names = [
+                func.get("name", "unnamed")
+                for func in self.abi
+                if func.get("type") == "function"
+            ]
+
+            view_functions = []
+            write_functions = []
+
+            for func_name in function_names:
                 try:
-                    contract_address = self.validate_ethereum_address(raw_address)
-                except ValueError as ve:
-                    self.logger.error(
-                        f"Address validation failed for {contract_name}: {ve}"
-                    )
-                    continue
+                    if not hasattr(self.contract.functions, func_name):
+                        continue
 
-                # Verify contract deployment
-                if not self.verify_contract_state(contract_address):
-                    self.logger.error(
-                        f"Contract {contract_name} not properly deployed at {contract_address}"
-                    )
-                    continue
+                    func = getattr(self.contract.functions, func_name)
+                    print(f"\n- {func_name}")
 
-                # Load ABI
-                abi = self._load_contract_abi(contract_name)
-
-                if not abi:
-                    self.logger.warning(f"Could not load ABI for {contract_name}")
-                    continue
-
-                # Create contract instance with verified checksum address
-                contract = self.w3.eth.contract(address=contract_address, abi=abi)
-
-                # Comprehensive Contract Verification
-                print(f"\n--- {contract_name} Contract Verification ---")
-                print(f"Contract Address: {contract_address}")
-                print(f"Network: {self.w3.eth.chain_id}")
-
-                # Check contract bytecode with improved error handling
-                try:
-                    contract_bytecode = self.w3.eth.get_code(contract_address)
-                    bytecode_length = len(contract_bytecode)
-                    print(f"Contract Bytecode Length: {bytecode_length}")
-
-                    if bytecode_length == 0:
-                        raise ValueError("No bytecode found at contract address")
-                    elif (
-                        bytecode_length < 100
-                    ):  # Arbitrary minimum size for a valid contract
-                        self.logger.warning(
-                            f"Unusually small bytecode size ({bytecode_length} bytes) for {contract_name}"
-                        )
-                except Exception as bytecode_error:
-                    self.logger.error(f"Bytecode verification failed: {bytecode_error}")
-                    continue
-
-                # Try to get contract owner with timeout
-                try:
-                    owner = contract.functions.owner().call(
-                        {"from": self.w3.eth.default_account}
-                    )
-                    print(f"Contract Owner: {owner}")
-
-                    # Verify owner is valid address
-                    if not Web3.is_address(owner):
-                        self.logger.warning(f"Invalid owner address returned: {owner}")
-                except Exception as owner_error:
-                    self.logger.warning(f"Could not retrieve contract owner: {owner_error}")
-
-                # Function verification with categorization
-                function_names = [
-                    func.get("name", "unnamed")
-                    for func in abi
-                    if func.get("type") == "function"
-                ]
-
-                # Categorize functions
-                view_functions = []
-                write_functions = []
-                special_functions = [
-                    "calculateDynamicFee",
-                    "adjustToProbabilityGap",
-                    "isWithinGap",
-                ]
-
-                print("\nContract Functions Analysis:")
-                for func_name in function_names:
                     try:
-                        if not hasattr(contract.functions, func_name):
-                            continue
-
-                        func = getattr(contract.functions, func_name)
-
-                        # Attempt to identify function type
-                        try:
-                            func_object = contract.get_function_by_name(func_name)
-                            if func_object.get("stateMutability") in ["view", "pure"]:
-                                view_functions.append(func_name)
-                            else:
-                                write_functions.append(func_name)
-                        except:
+                        func_object = self.contract.get_function_by_name(func_name)
+                        if func_object.get("stateMutability") in ["view", "pure"]:
+                            view_functions.append(func_name)
+                        else:
                             write_functions.append(func_name)
+                    except:
+                        write_functions.append(func_name)
 
-                        print(f"\n- {func_name}")
+                except Exception as func_error:
+                    self.logger.error(f"Error analyzing function {func_name}: {func_error}")
 
-                        # Test special functions
-                        if func_name in special_functions:
-                            try:
-                                result = func(10).call(
-                                    {"from": self.w3.eth.default_account}
-                                )
-                                print(f"  ✓ Special function test successful")
-                                print(f"  Result: {result}")
-                            except Exception as special_error:
-                                print(f"  ✗ Special function test failed: {special_error}")
+            print(f"\nFunction Statistics:")
+            print(f"Total Functions: {len(function_names)}")
+            print(f"View/Pure Functions: {len(view_functions)}")
+            print(f"State-Changing Functions: {len(write_functions)}")
 
-                        # Test view functions
-                        elif func_name in ["getAllNodes", "getAttackHistory", "owner"]:
-                            try:
-                                result = func().call({"from": self.w3.eth.default_account})
-                                print(f"  ✓ View function test successful")
-                                print(f"  Result: {result}")
-                            except Exception as view_error:
-                                print(f"  ✗ View function test failed: {view_error}")
-
-                    except Exception as func_error:
-                        self.logger.error(
-                            f"Error analyzing function {func_name}: {func_error}"
-                        )
-
-                # Print function statistics
-                print(f"\nFunction Statistics:")
-                print(f"Total Functions: {len(function_names)}")
-                print(f"View/Pure Functions: {len(view_functions)}")
-                print(f"State-Changing Functions: {len(write_functions)}")
-
-                # Store contract with metadata
-                self.contracts[contract_name] = {
-                    "contract": contract,
-                    "address": contract_address,
-                    "bytecode_size": bytecode_length,
-                    "view_functions": view_functions,
-                    "write_functions": write_functions,
-                }
-
-                self.logger.info(
-                    f"Successfully loaded and verified {contract_name} at {contract_address}"
-                )
-
-            except Exception as e:
-                self.logger.error(f"Error loading contract {contract_name}: {e}")
-                continue
-
-        # Final verification
-        if not self.contracts:
-            raise ValueError("No contracts were successfully loaded")
-
-        return self.contracts
-
-    def load_sample_data(self):
-        """Load sample data into BCADN contracts from CSV files"""
-        # Determine paths
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        project_root = os.path.abspath(os.path.join(script_dir, '..'))
-        
-        # Define expected CSV files in project root
-        nodes_csv = os.path.join(project_root, 'sample_nodes.csv')
-        attacks_csv = os.path.join(project_root, 'sample_attacks.csv')
-        
-        # Validate CSV files exist
-        if not os.path.exists(nodes_csv):
-            raise FileNotFoundError(f"Nodes CSV file not found at: {nodes_csv}")
-        if not os.path.exists(attacks_csv):
-            raise FileNotFoundError(f"Attacks CSV file not found at: {attacks_csv}")
-
-        # Load data from CSV files
-        try:
-            # Load nodes data
-            nodes_df = pd.read_csv(nodes_csv)
-            required_node_columns = {'address', 'performance', 'reliability'}
-            if not required_node_columns.issubset(nodes_df.columns):
-                missing = required_node_columns - set(nodes_df.columns)
-                raise ValueError(f"Missing required columns in nodes CSV: {missing}")
-            
-            # Convert to list of dicts
-            sample_nodes = nodes_df.to_dict('records')
-            
-            # Load attacks data
-            attacks_df = pd.read_csv(attacks_csv)
-            required_attack_columns = {'node', 'anomaly_score', 'attack_type'}
-            if not required_attack_columns.issubset(attacks_df.columns):
-                missing = required_attack_columns - set(attacks_df.columns)
-                raise ValueError(f"Missing required columns in attacks CSV: {missing}")
-            
-            sample_attacks = attacks_df.to_dict('records')
-            
-        except Exception as e:
-            self.logger.error(f"Error loading CSV data: {e}")
-            raise
-
-        # Create Web3 connection
-        web3 = create_web3_connection()
-        if not web3:
-            raise ConnectionError("Failed to establish Web3 connection")
-
-        # Load contracts
-        analyzer = BCADNNetworkAnalyzer(
-            web3=web3,
-            contract_addresses_path=os.path.join(project_root, 'config', 'contract_addresses.json'),
-            build_contracts_dir=os.path.join(project_root, 'build', 'contracts')
-        )
-        
-        loaded_contracts = analyzer.load_bcadn_contracts()
-        if not loaded_contracts:
-            raise ValueError("Failed to load contracts")
-
-        bcadn_contract = loaded_contracts.get("BCADN", {}).get("contract")
-        if not bcadn_contract:
-            raise ValueError("BCADN contract not loaded")
-
-        # Validate and process nodes
-        valid_nodes = []
-        for node in sample_nodes:
-            try:
-                # Validate address format
-                validated_address = analyzer.validate_ethereum_address(node['address'])
-                valid_nodes.append({
-                    'address': validated_address,
-                    'performance': int(node['performance']),
-                    'reliability': int(node['reliability'])
-                })
-            except (ValueError, KeyError) as e:
-                self.logger.warning(f"Skipping invalid node data: {node}. Error: {e}")
-
-        # Validate and process attacks
-        valid_attacks = []
-        for attack in sample_attacks:
-            try:
-                validated_node = analyzer.validate_ethereum_address(attack['node'])
-                valid_attacks.append({
-                    'node': validated_node,
-                    'anomaly_score': int(attack['anomaly_score']),
-                    'attack_type': str(attack['attack_type'])
-                })
-            except (ValueError, KeyError) as e:
-                self.logger.warning(f"Skipping invalid attack data: {attack}. Error: {e}")
-
-        # Register nodes
-        self.logger.info(f"Registering {len(valid_nodes)} nodes...")
-        for node in valid_nodes:
-            try:
-                self.logger.info(f"Registering node: {node['address']}")
-                tx_hash = bcadn_contract.functions.registerNode(
-                    node['address'],
-                    node['performance'],
-                    node['reliability']
-                ).transact({'from': web3.eth.default_account})
-                
-                # Wait for transaction receipt
-                receipt = web3.eth.wait_for_transaction_receipt(tx_hash)
-                if receipt.status == 1:
-                    self.logger.info(f"Node {node['address']} registered successfully")
-                else:
-                    self.logger.error(f"Failed to register node {node['address']}")
-            except Exception as e:
-                self.logger.error(f"Error registering node {node['address']}: {e}")
-
-        # Record attacks
-        self.logger.info(f"Recording {len(valid_attacks)} attacks...")
-        for attack in valid_attacks:
-            try:
-                self.logger.info(f"Recording attack for node: {attack['node']}")
-                tx_hash = bcadn_contract.functions.recordAnomaly(
-                    attack['node'],
-                    attack['anomaly_score'],
-                    attack['attack_type']
-                ).transact({'from': web3.eth.default_account})
-                
-                # Wait for transaction receipt
-                receipt = web3.eth.wait_for_transaction_receipt(tx_hash)
-                if receipt.status == 1:
-                    self.logger.info(f"Attack recorded successfully for {attack['node']}")
-                else:
-                    self.logger.error(f"Failed to record attack for {attack['node']}")
-            except Exception as e:
-                self.logger.error(f"Error recording attack for {attack['node']}: {e}")
-
-        self.logger.info("Sample data loading complete!")
-        return {
-            'nodes_registered': len(valid_nodes),
-            'attacks_recorded': len(valid_attacks),
-            'invalid_nodes': len(sample_nodes) - len(valid_nodes),
-            'invalid_attacks': len(sample_attacks) - len(valid_attacks)
-        }
-        
-
-    def analyze_network_performance(self) -> Dict[str, Any]:
-        """
-        Comprehensive analysis of BCADN network performance
-
-        :return: Dictionary of network performance metrics
-        """
-        # Initialize results structure
-        results = {
-            "network_metrics": {},
-            "node_performance": {
-                "node_addresses": [],
-                "weights": [],
-                "statuses": [],
-                "performance_details": [],
-            },
-            "attack_history": {
-                "node_addresses": [],
-                "timestamps": [],
-                "anomaly_scores": [],
-                "attack_types": [],
-                "resolved": [],
-            },
-        }
-
-        # Advanced debugging for contract interaction
-        try:
-            bcadn = self.contracts.get("BCADN", {}).get("contract")
-            proactive_defense = self.contracts.get("ProactiveDefenseMechanism", {}).get("contract")
-
-            if not bcadn or not proactive_defense:
-                raise ValueError("BCADN or ProactiveDefenseMechanism contract not loaded")
-
-            # Detailed contract inspection
-            print("\n--- Contract Deployment Details ---")
-            bcadn_address = self.contracts["BCADN"]["address"]
-            proactive_defense_address = self.contracts["ProactiveDefenseMechanism"]["address"]
-            print(f"BCADN Contract Address: {bcadn_address}")
-            print(f"ProactiveDefenseMechanism Contract Address: {proactive_defense_address}")
-            print(f"Network Chain ID: {self.w3.eth.chain_id}")
-
-            # Attempt to retrieve network information
-            try:
-                # Try to get node information from BCADN contract
-                nodes_data = bcadn.functions.getAllNodes().call()
-                results["node_performance"]["node_addresses"] = nodes_data[0]
-                results["node_performance"]["weights"] = nodes_data[1] or []
-
-                # Map integer status to string status
-                status_map = ["Active", "Probation", "Excluded", "Pending"]
-                results["node_performance"]["statuses"] = [
-                    status_map[min(status, len(status_map) - 1)] 
-                    for status in (nodes_data[2] or [])
-                ]
-
-                print(f"Retrieved {len(nodes_data[0])} nodes from BCADN contract")
-            except Exception as node_error:
-                print(f"Error retrieving nodes from BCADN contract: {node_error}")
-
-            # Try to get attack history
-            try:
-                attack_history = bcadn.functions.getAttackHistory().call()
-                results["attack_history"]["node_addresses"] = attack_history[0] or []
-                results["attack_history"]["timestamps"] = attack_history[1] or []
-                results["attack_history"]["anomaly_scores"] = attack_history[2] or []
-                results["attack_history"]["resolved"] = attack_history[3] or []
-                results["attack_history"]["attack_types"] = [
-                    "Unknown" for _ in range(len(attack_history[0]) if attack_history[0] else 0)
-                ]
-
-                print(f"Retrieved {len(attack_history[0])} attack history entries")
-            except Exception as attack_error:
-                print(f"Error retrieving attack history: {attack_error}")
-
-            # Additional network metrics
-            results["network_metrics"] = {
-                "total_nodes": len(results["node_performance"]["node_addresses"]),
-                "total_attacks": len(results["attack_history"]["node_addresses"]),
-                "resolved_attacks": sum(results["attack_history"]["resolved"])
-                if results["attack_history"]["resolved"]
-                else 0,
-                "chain_id": self.w3.eth.chain_id,
-                "latest_block": self.w3.eth.block_number,
-                "gas_price": self.w3.eth.gas_price,
+            return {
+                "contract": self.contract,
+                "address": self.contract_address,
+                "bytecode_size": bytecode_length,
+                "view_functions": view_functions,
+                "write_functions": write_functions,
             }
 
         except Exception as e:
-            print(f"Critical Error in Network Performance Analysis: {e}")
-            import traceback
-            traceback.print_exc()
-
-        return results
-
-    def simulate_network_stress_test(self, num_transactions: int = 50) -> Dict[str, Any]:
+            self.logger.error(f"Error loading contract: {e}")
+            raise
+    
+    # Simulation functions for BCADN
+    def simulate_register_node(self, node_id, performance, reliability):
         """
-        Simulate network stress test by submitting multiple transactions
-
-        :param num_transactions: Number of transactions to simulate
-        :return: Stress test results dictionary containing transaction details and metrics
+        Simulate node registration
         """
-        # Get BCADN contract instance
-        bcadn = self.contracts.get("BCADN", {}).get("contract")
-        if not bcadn:
-            raise ValueError("BCADN contract not loaded")
-
-        # Initialize results structure
-        stress_test_results = {
-            "transactions": [],
-            "total_processing_time": 0,
-            "average_dynamic_fee": 0,
-            "max_congestion_index": 0,
-            "successful_transactions": 0,
-            "failed_transactions": 0,
-            "average_gas_used": 0,
-            "total_gas_cost": 0,
+        print(f"\nRegistering node {node_id}")
+        
+        # Calculate initial weight
+        alpha = 10  # Default alpha from contract
+        beta = 20   # Default beta from contract
+        initial_weight = (alpha * 100) + (beta * performance)
+        
+        self.mock_nodes[node_id] = {
+            "nodeId": node_id,
+            "performance": performance,
+            "reliability": reliability,
+            "anomalyScore": 0,
+            "weight": initial_weight,
+            "isolationTime": 0,
+            "status": "Active"  # Enum: Active = 0
         }
-
-        # Submit transactions
-        for i in range(num_transactions):
-            try:
-                # Base fee and amount calculation
-                base_fee = random.randint(1, 10)
-                amount = random.randint(1, 100)
-
-                # Calculate dynamic fee
-                try:
-                    dynamic_fee = bcadn.functions.calculateDynamicFee(base_fee).call(
-                        {"from": self.w3.eth.default_account}
-                    )
-                except Exception as fee_error:
-                    self.logger.error(f"Error calculating dynamic fee: {fee_error}")
-                    dynamic_fee = base_fee  # Fallback to base fee
-
-                # Record transaction result
-                tx_result = {
-                    "base_fee": base_fee,
-                    "dynamic_fee": dynamic_fee,
-                    "amount": amount,
-                    "timestamp": int(time.time()),
-                }
-
-                stress_test_results["transactions"].append(tx_result)
-                stress_test_results["average_dynamic_fee"] += dynamic_fee
-
-                # Simulate congestion index
-                current_congestion = random.uniform(0, 100)
-                stress_test_results["max_congestion_index"] = max(
-                    stress_test_results["max_congestion_index"], current_congestion
-                )
-
-                stress_test_results["successful_transactions"] += 1
-
-                # Small delay to simulate network conditions
-                time.sleep(0.1)
-
-            except Exception as e:
-                self.logger.error(f"Error in transaction simulation {i+1}: {e}")
-                stress_test_results["failed_transactions"] += 1
-
-        # Calculate averages
-        total_tx = len(stress_test_results["transactions"])
-        if total_tx > 0:
-            stress_test_results["average_dynamic_fee"] /= total_tx
-
-        # Add summary metrics
-        stress_test_results["summary"] = {
-            "total_transactions": total_tx,
-            "success_rate": (
-                stress_test_results["successful_transactions"] / total_tx
-                if total_tx > 0
-                else 0
-            ),
-            "average_dynamic_fee": stress_test_results["average_dynamic_fee"],
-            "max_congestion_index": stress_test_results["max_congestion_index"],
+        
+        print(f"Node registered with initial weight: {initial_weight}")
+        return True
+    
+    def simulate_create_shard(self, shard_id, capacity):
+        """
+        Simulate shard creation
+        """
+        print(f"\nCreating shard {shard_id}")
+        
+        self.mock_shards[shard_id] = {
+            "id": shard_id,
+            "nodes": [],
+            "capacity": capacity,
+            "currentLoad": 0,
+            "active": True
         }
-
-        self.logger.info("Network stress test completed")
-        self.logger.info(
-            f"Success rate: {stress_test_results['summary']['success_rate']:.2%}"
+        
+        print(f"Shard created with capacity: {capacity}")
+        return True
+    
+    def simulate_add_node_to_shard(self, shard_id, node_id):
+        """
+        Simulate adding node to shard
+        """
+        if shard_id not in self.mock_shards:
+            print(f"Error: Shard {shard_id} does not exist")
+            return False
+            
+        if node_id not in self.mock_nodes:
+            print(f"Error: Node {node_id} does not exist")
+            return False
+        
+        self.mock_shards[shard_id]["nodes"].append(node_id)
+        print(f"Added node {node_id} to shard {shard_id}")
+        return True
+    
+    def simulate_update_node_metrics(self, node_id, performance, reliability, anomaly_score):
+        """
+        Simulate updating node metrics
+        """
+        if node_id not in self.mock_nodes:
+            print(f"Error: Node {node_id} does not exist")
+            return False
+            
+        node = self.mock_nodes[node_id]
+        node["performance"] = performance
+        node["reliability"] = reliability
+        node["anomalyScore"] = anomaly_score
+        
+        # Check anomaly threshold
+        anomaly_threshold = 30  # Default from contract
+        
+        if anomaly_score > anomaly_threshold and node["status"] == "Active":
+            node["status"] = "Probation"
+            node["isolationTime"] = int(time.time())
+            print(f"Node {node_id} placed on probation due to high anomaly score")
+        
+        # Dynamic weight adjustment
+        self._simulate_update_node_weight(node_id)
+        
+        print(f"Updated metrics for node {node_id}")
+        return True
+    
+    def _simulate_update_node_weight(self, node_id):
+        """
+        Simulate dynamic weight adjustment
+        """
+        node = self.mock_nodes[node_id]
+        
+        # Default parameters from contract
+        alpha = 10
+        beta = 20
+        gamma = 30
+        
+        # Calculate dynamic weight
+        # W(t) = (alpha * Fee + beta * Performance - gamma * AnomalyScore)
+        new_weight = (alpha * 100) + (beta * node["performance"]) - (gamma * node["anomalyScore"])
+        
+        # Apply probability gap
+        min_probability = 20  # Default from contract
+        max_probability = 80  # Default from contract
+        
+        if new_weight < min_probability:
+            new_weight = min_probability
+        elif new_weight > max_probability:
+            new_weight = max_probability
+            
+        node["weight"] = new_weight
+        print(f"Updated weight for node {node_id}: {new_weight}")
+    
+    def simulate_submit_transaction(self, sender, receiver, amount):
+        """
+        Simulate transaction submission
+        """
+        # Generate transaction hash
+        tx_hash = f"0x{random.getrandbits(256):064x}"
+        
+        # Calculate dynamic fee
+        base_fee = 100  # Example base fee
+        dynamic_fee = self._simulate_calculate_dynamic_fee(base_fee)
+        
+        self.mock_transactions[tx_hash] = {
+            "txHash": tx_hash,
+            "sender": sender,
+            "receiver": receiver,
+            "amount": amount,
+            "fee": dynamic_fee,
+            "timestamp": int(time.time()),
+            "processingTime": 0,
+            "completed": False
+        }
+        
+        # Assign to shard
+        assigned_shard = self._simulate_assign_transaction(tx_hash)
+        
+        print(f"\nTransaction submitted: {tx_hash}")
+        print(f"Sender: {sender}")
+        print(f"Receiver: {receiver}")
+        print(f"Amount: {amount}")
+        print(f"Fee: {dynamic_fee}")
+        print(f"Assigned to shard: {assigned_shard}")
+        
+        return tx_hash
+    
+    def _simulate_calculate_dynamic_fee(self, base_fee):
+        """
+        Simulate dynamic fee calculation based on congestion
+        """
+        # Simple implementation - in real contract, would depend on congestion index
+        pending_tx_count = len([tx for tx in self.mock_transactions.values() if not tx["completed"]])
+        network_capacity = 1000  # Default capacity
+        
+        if network_capacity == 0:
+            return base_fee
+            
+        congestion_index = (pending_tx_count * 1e18) / network_capacity
+        dynamic_fee = int(base_fee * (1e18 + congestion_index) / 1e18)
+        
+        return dynamic_fee
+    
+    def _simulate_assign_transaction(self, tx_hash):
+        """
+        Simulate transaction assignment to a shard
+        """
+        if not self.mock_shards:
+            # Auto-create a shard if none exists
+            self.simulate_create_shard(1, 1000)
+            
+        # Randomized shard selection
+        shard_ids = list(self.mock_shards.keys())
+        selected_shard = random.choice(shard_ids)
+        
+        # Update shard load
+        self.mock_shards[selected_shard]["currentLoad"] += 1
+        
+        return selected_shard
+    
+    def simulate_process_transaction(self, tx_hash):
+        """
+        Simulate transaction processing
+        """
+        if tx_hash not in self.mock_transactions:
+            print(f"Error: Transaction {tx_hash} does not exist")
+            return False
+            
+        tx = self.mock_transactions[tx_hash]
+        if tx["completed"]:
+            print(f"Error: Transaction {tx_hash} already completed")
+            return False
+            
+        # Mark as completed and calculate processing time
+        tx["completed"] = True
+        tx["processingTime"] = int(time.time()) - tx["timestamp"]
+        
+        print(f"\nTransaction {tx_hash} processed")
+        print(f"Processing time: {tx['processingTime']} seconds")
+        
+        return True
+    
+    def simulate_record_anomaly(self, node_id, anomaly_score, attack_type):
+        """
+        Simulate anomaly recording
+        """
+        if node_id not in self.mock_nodes:
+            print(f"Error: Node {node_id} does not exist")
+            return False
+            
+        anomaly_id = len(self.mock_anomalies)
+        
+        anomaly = {
+            "id": anomaly_id,
+            "node": node_id,
+            "timestamp": int(time.time()),
+            "anomalyScore": anomaly_score,
+            "attackType": attack_type,
+            "resolved": False
+        }
+        
+        self.mock_anomalies.append(anomaly)
+        
+        print(f"\nAnomaly recorded for node {node_id}")
+        print(f"Anomaly ID: {anomaly_id}")
+        print(f"Anomaly Score: {anomaly_score}")
+        print(f"Attack Type: {attack_type}")
+        
+        # Update node metrics to reflect anomaly
+        self.simulate_update_node_metrics(
+            node_id,
+            self.mock_nodes[node_id]["performance"],
+            self.mock_nodes[node_id]["reliability"],
+            anomaly_score
         )
-
-        return stress_test_results
-
-    def visualize_network_analysis(self, network_results: Dict[str, Any]) -> None:
+        
+        return anomaly_id
+    
+    def get_node_details(self, node_id):
         """
-        Visualize network analysis results
-
-        :param network_results: Results from network performance analysis
+        Get node details
         """
-        try:
-            import matplotlib.pyplot as plt
-            import os
+        if node_id not in self.mock_nodes:
+            print(f"Error: Node {node_id} does not exist")
+            return None
+            
+        return self.mock_nodes[node_id]
+    
+    def get_shard_details(self, shard_id):
+        """
+        Get shard details
+        """
+        if shard_id not in self.mock_shards:
+            print(f"Error: Shard {shard_id} does not exist")
+            return None
+            
+        return self.mock_shards[shard_id]
+    
+    def get_transaction_details(self, tx_hash):
+        """
+        Get transaction details
+        """
+        if tx_hash not in self.mock_transactions:
+            print(f"Error: Transaction {tx_hash} does not exist")
+            return None
+            
+        return self.mock_transactions[tx_hash]
+    
+    def get_all_nodes(self):
+        """
+        Get all nodes
+        """
+        return list(self.mock_nodes.values())
+    
+    def get_all_shards(self):
+        """
+        Get all shards
+        """
+        return list(self.mock_shards.values())
+    
+    def get_all_transactions(self):
+        """
+        Get all transactions
+        """
+        return list(self.mock_transactions.values())
+    
+    def get_all_anomalies(self):
+        """
+        Get all anomalies
+        """
+        return self.mock_anomalies
+    
+    def get_node_stats(self):
+        """
+        Get node stats summary
+        """
+        if not self.mock_nodes:
+            return None
+            
+        total_nodes = len(self.mock_nodes)
+        active_nodes = sum(1 for node in self.mock_nodes.values() if node["status"] == "Active")
+        probation_nodes = sum(1 for node in self.mock_nodes.values() if node["status"] == "Probation")
+        excluded_nodes = sum(1 for node in self.mock_nodes.values() if node["status"] == "Excluded")
+        
+        avg_performance = sum(node["performance"] for node in self.mock_nodes.values()) / total_nodes
+        avg_reliability = sum(node["reliability"] for node in self.mock_nodes.values()) / total_nodes
+        avg_anomaly = sum(node["anomalyScore"] for node in self.mock_nodes.values()) / total_nodes
+        
+        return {
+            "totalNodes": total_nodes,
+            "activeNodes": active_nodes,
+            "probationNodes": probation_nodes,
+            "excludedNodes": excluded_nodes,
+            "avgPerformance": avg_performance,
+            "avgReliability": avg_reliability,
+            "avgAnomalyScore": avg_anomaly
+        }
+    
+    def get_network_stats(self):
+        """
+        Get network stats summary
+        """
+        total_tx = len(self.mock_transactions)
+        pending_tx = sum(1 for tx in self.mock_transactions.values() if not tx["completed"])
+        completed_tx = total_tx - pending_tx
+        
+        avg_fee = 0
+        avg_processing_time = 0
+        
+        if total_tx > 0:
+            avg_fee = sum(tx["fee"] for tx in self.mock_transactions.values()) / total_tx
+            
+        if completed_tx > 0:
+            avg_processing_time = sum(
+                tx["processingTime"] for tx in self.mock_transactions.values() if tx["completed"]
+            ) / completed_tx
+            
+        total_shards = len(self.mock_shards)
+        total_capacity = sum(shard["capacity"] for shard in self.mock_shards.values())
+        total_load = sum(shard["currentLoad"] for shard in self.mock_shards.values())
+        
+        return {
+            "totalTransactions": total_tx,
+            "pendingTransactions": pending_tx,
+            "completedTransactions": completed_tx,
+            "averageFee": avg_fee,
+            "averageProcessingTime": avg_processing_time,
+            "totalShards": total_shards,
+            "totalCapacity": total_capacity,
+            "currentLoad": total_load,
+            "loadPercentage": (total_load / total_capacity * 100) if total_capacity > 0 else 0
+        }
 
-            # Ensure results directory exists
-            os.makedirs(RESULT_OUTPUT_DIR, exist_ok=True)
 
-            # Visualize Node Performance
-            plt.figure(figsize=(12, 6))
-
-            # Node Weights Distribution
-            plt.subplot(1, 2, 1)
-            node_weights = network_results.get("node_performance", {}).get("weights", [])
-            if node_weights and any(node_weights):
-                plt.hist(node_weights, bins=min(10, len(node_weights)), edgecolor="black")
-                plt.title("Node Weights Distribution")
-                plt.xlabel("Node Weight")
-                plt.ylabel("Frequency")
-            else:
-                plt.text(0.5, 0.5, "No Node Data Available", 
-                         horizontalalignment='center', 
-                         verticalalignment='center')
-                plt.title("Node Weights Distribution")
-
-            # Attack History
-            plt.subplot(1, 2, 2)
-            attack_scores = network_results.get("attack_history", {}).get("anomaly_scores", [])
-            resolved_attacks = network_results.get("attack_history", {}).get("resolved", [])
-
-            # Check if there are any attacks
-            if attack_scores and resolved_attacks:
-                # Color resolved and unresolved attacks differently
-                resolved_scores = [
-                    score for i, score in enumerate(attack_scores) if resolved_attacks[i]
-                ]
-                unresolved_scores = [
-                    score for i, score in enumerate(attack_scores) if not resolved_attacks[i]
-                ]
-
-                plt.bar(
-                    ["Resolved", "Unresolved"],
-                    [len(resolved_scores), len(unresolved_scores)],
-                    color=["green", "red"],
-                )
-                plt.title("Attack Resolution Status")
-                plt.ylabel("Number of Attacks")
-            else:
-                plt.text(0.5, 0.5, "No Attack Data Available", 
-                         horizontalalignment='center', 
-                         verticalalignment='center')
-                plt.title("Attack Resolution Status")
-
-            plt.tight_layout()
-            plt.savefig(os.path.join(RESULT_OUTPUT_DIR, "network_analysis.png"))
-            plt.close()
-
-            # Save network results as JSON
-            with open(os.path.join(RESULT_OUTPUT_DIR, "network_results.json"), "w") as f:
-                json.dump(network_results, f, indent=2)
-
-            print(f"Network analysis visualization saved in {RESULT_OUTPUT_DIR}")
-
-        except ImportError:
-            print("Matplotlib not available. Skipping visualization.")
-        except Exception as e:
-            print(f"Error in visualization: {e}")
-            import traceback
-            traceback.print_exc()
-
-
-def create_web3_connection():
+def create_web3_connection(network: str = "sepolia"):
     """
-    Create a Web3 connection to Sepolia testnet using Infura
-
-    :return: Configured Web3 instance
+    Create a simple Web3 connection to Sepolia testnet using Infura
     """
     try:
-        # Retrieve Infura Project ID and Private Key from environment variables
+        # Retrieve Infura Project ID from environment variables
         INFURA_PROJECT_ID = os.getenv("INFURA_PROJECT_ID")
-        PRIVATE_KEY = os.getenv("PRIVATE_KEY")
 
         if not INFURA_PROJECT_ID:
             raise ValueError("INFURA_PROJECT_ID not found in environment variables")
 
         # Construct Infura URL for Sepolia
-        infura_url = f"https://sepolia.infura.io/v3/{INFURA_PROJECT_ID}"
+        sepolia_url = f"https://sepolia.infura.io/v3/{INFURA_PROJECT_ID}"
 
-        # Create Web3 instance with HTTPProvider
-        web3 = Web3(HTTPProvider(infura_url))
+        # Create Web3 instance
+        web3 = Web3(HTTPProvider(sepolia_url))
 
-        # Add PoA middleware for Sepolia
-        try:
-            from web3.middleware import geth_poa_middleware
-
-            web3.middleware_onion.inject(geth_poa_middleware, layer=0)
-        except ImportError:
-            print("Warning: Could not import geth_poa_middleware")
-
-        # Detailed connection verification
-        print("\n--- Web3 Connection Diagnostics ---")
-        print(f"Connecting to: {infura_url}")
-
-        # Check connection status
-        is_connected = web3.is_connected()
-        print(f"Connection Status: {'Connected' if is_connected else 'Not Connected'}")
-
-        if not is_connected:
+        # Check connection
+        if not web3.is_connected():
             raise ConnectionError("Failed to connect to Infura Sepolia endpoint")
 
-        # Retrieve and print network information
-        try:
-            print(f"Chain ID: {web3.eth.chain_id}")
-            print(f"Latest Block Number: {web3.eth.block_number}")
-            print(f"Gas Price: {web3.eth.gas_price} Wei")
-        except Exception as network_error:
-            print(f"Error retrieving network information: {network_error}")
+        # Set the default account
+        web3.eth.default_account = "0x7927E739C9B0b304610D4Ae35cBf5FDD0D5ad36A"
 
-        # Set up account if private key is provided
-        if PRIVATE_KEY:
-            try:
-                account = Account.from_key(PRIVATE_KEY)
-                checksummed_address = Web3.to_checksum_address(account.address)
-                web3.eth.default_account = checksummed_address
-                print(f"\nAccount Details:")
-                print(f"Account Address: {checksummed_address}")
-                print(
-                    f"Account Balance: {web3.eth.get_balance(checksummed_address)} Wei"
-                )
-            except ValueError as ve:
-                print(f"Invalid address format: {ve}")
-            except Exception as account_error:
-                print(f"Error setting up account: {account_error}")
+        # Basic network information
+        print("\n--- Web3 Connection ---")
+        print(f"Connected to Network: Sepolia")
+        print(f"Chain ID: {web3.eth.chain_id}")
+        print(f"Latest Block Number: {web3.eth.block_number}")
+        print(f"Default Account: {web3.eth.default_account}")
 
         return web3
-    except Exception as e:
-        logging.error(f"Comprehensive connection error: {e}")
-        return None
 
+    except Exception as e:
+        logging.error(f"Blockchain Connection Error: {e}")
+        print(f"Connection Failed: {e}")
+        return None
 
 def main():
     """
-    Main function to run BCADN Network Analysis
+    Main function to interact with BCADN contract
     """
     try:
-        # Create Web3 connection
-        web3 = create_web3_connection()
+        # Contract address for BCADN on Sepolia
+        BCADN_CONTRACT_ADDRESS = "0x6ad3e5e5a741a1e88602d229aa547e5e013324cf"  # Replace with actual deployed address
 
-        if web3 is None:
+        # Create Web3 connection
+        web3 = create_web3_connection("sepolia")
+        if not web3:
             print("Could not establish blockchain connection. Exiting.")
             sys.exit(1)
 
-        # Determine the absolute path to contract addresses
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        project_root = os.path.abspath(os.path.join(script_dir, ".."))
-        contract_addresses_path = os.path.join(
-            project_root, "config", "contract_addresses.json"
-        )
-        build_contracts_dir = os.path.join(project_root, "build", "contracts")
-
-        # Initialize network analyzer
-        analyzer = BCADNNetworkAnalyzer(
-            web3=web3,
-            contract_addresses_path=contract_addresses_path,
-            build_contracts_dir=build_contracts_dir,
+        # Initialize analyzer
+        analyzer = BCADNAnalyzer(
+            web3=web3, 
+            contract_address=BCADN_CONTRACT_ADDRESS,
         )
 
-        # Load BCADN contracts
-        loaded_contracts = analyzer.load_bcadn_contracts()
-        print("Loaded Contracts:", list(loaded_contracts.keys()))
+        # Use simulation mode for testing
+        use_simulation = True
+
+        # Set up ABI directly from contract code
+        custom_abi = {"abi": [
+  {
+    "inputs": [],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "anonymous": False,
+    "inputs": [
+      {
+        "indexed": True,
+        "internalType": "address",
+        "name": "node",
+        "type": "address"
+      },
+      {
+        "indexed": False,
+        "internalType": "uint256",
+        "name": "anomalyScore",
+        "type": "uint256"
+      },
+      {
+        "indexed": False,
+        "internalType": "string",
+        "name": "attackType",
+        "type": "string"
+      }
+    ],
+    "name": "AnomalyDetected",
+    "type": "event"
+  },
+  {
+    "anonymous": False,
+    "inputs": [
+      {
+        "indexed": True,
+        "internalType": "address",
+        "name": "node",
+        "type": "address"
+      },
+      {
+        "indexed": True,
+        "internalType": "uint256",
+        "name": "attackIndex",
+        "type": "uint256"
+      }
+    ],
+    "name": "AnomalyResolved",
+    "type": "event"
+  },
+  {
+    "anonymous": False,
+    "inputs": [
+      {
+        "indexed": True,
+        "internalType": "uint256",
+        "name": "congestionIndex",
+        "type": "uint256"
+      },
+      {
+        "indexed": False,
+        "internalType": "uint256",
+        "name": "pendingTransactions",
+        "type": "uint256"
+      },
+      {
+        "indexed": False,
+        "internalType": "uint256",
+        "name": "networkCapacity",
+        "type": "uint256"
+      }
+    ],
+    "name": "CongestionUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": False,
+    "inputs": [
+      {
+        "indexed": False,
+        "internalType": "uint256",
+        "name": "newGap",
+        "type": "uint256"
+      },
+      {
+        "indexed": False,
+        "internalType": "uint256",
+        "name": "minProbability",
+        "type": "uint256"
+      },
+      {
+        "indexed": False,
+        "internalType": "uint256",
+        "name": "maxProbability",
+        "type": "uint256"
+      }
+    ],
+    "name": "GapUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": False,
+    "inputs": [
+      {
+        "indexed": True,
+        "internalType": "uint256",
+        "name": "shardId",
+        "type": "uint256"
+      },
+      {
+        "indexed": True,
+        "internalType": "address",
+        "name": "node",
+        "type": "address"
+      }
+    ],
+    "name": "NodeAddedToShard",
+    "type": "event"
+  },
+  {
+    "anonymous": False,
+    "inputs": [
+      {
+        "indexed": True,
+        "internalType": "address",
+        "name": "nodeAddress",
+        "type": "address"
+      }
+    ],
+    "name": "NodeRegistered",
+    "type": "event"
+  },
+  {
+    "anonymous": False,
+    "inputs": [
+      {
+        "indexed": True,
+        "internalType": "uint256",
+        "name": "shardId",
+        "type": "uint256"
+      },
+      {
+        "indexed": True,
+        "internalType": "address",
+        "name": "node",
+        "type": "address"
+      }
+    ],
+    "name": "NodeRemovedFromShard",
+    "type": "event"
+  },
+  {
+    "anonymous": False,
+    "inputs": [
+      {
+        "indexed": True,
+        "internalType": "address",
+        "name": "nodeAddress",
+        "type": "address"
+      },
+      {
+        "indexed": False,
+        "internalType": "enum BCADN.NodeStatus",
+        "name": "newStatus",
+        "type": "uint8"
+      }
+    ],
+    "name": "NodeStatusChanged",
+    "type": "event"
+  },
+  {
+    "anonymous": False,
+    "inputs": [
+      {
+        "indexed": True,
+        "internalType": "address",
+        "name": "nodeAddress",
+        "type": "address"
+      },
+      {
+        "indexed": True,
+        "internalType": "uint256",
+        "name": "newWeight",
+        "type": "uint256"
+      }
+    ],
+    "name": "NodeWeightUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": False,
+    "inputs": [
+      {
+        "indexed": True,
+        "internalType": "address",
+        "name": "previousOwner",
+        "type": "address"
+      },
+      {
+        "indexed": True,
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "OwnershipTransferred",
+    "type": "event"
+  },
+  {
+    "anonymous": False,
+    "inputs": [
+      {
+        "indexed": True,
+        "internalType": "uint256",
+        "name": "shardId",
+        "type": "uint256"
+      }
+    ],
+    "name": "ShardCreated",
+    "type": "event"
+  },
+  {
+    "anonymous": False,
+    "inputs": [
+      {
+        "indexed": True,
+        "internalType": "bytes32",
+        "name": "txHash",
+        "type": "bytes32"
+      },
+      {
+        "indexed": True,
+        "internalType": "uint256",
+        "name": "shardId",
+        "type": "uint256"
+      }
+    ],
+    "name": "TransactionAssigned",
+    "type": "event"
+  },
+  {
+    "anonymous": False,
+    "inputs": [
+      {
+        "indexed": True,
+        "internalType": "bytes32",
+        "name": "txHash",
+        "type": "bytes32"
+      },
+      {
+        "indexed": False,
+        "internalType": "uint256",
+        "name": "processingTime",
+        "type": "uint256"
+      }
+    ],
+    "name": "TransactionCompleted",
+    "type": "event"
+  },
+  {
+    "anonymous": False,
+    "inputs": [
+      {
+        "indexed": True,
+        "internalType": "bytes32",
+        "name": "txHash",
+        "type": "bytes32"
+      },
+      {
+        "indexed": True,
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      },
+      {
+        "indexed": True,
+        "internalType": "address",
+        "name": "receiver",
+        "type": "address"
+      },
+      {
+        "indexed": False,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      },
+      {
+        "indexed": False,
+        "internalType": "uint256",
+        "name": "fee",
+        "type": "uint256"
+      }
+    ],
+    "name": "TransactionSubmitted",
+    "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "alpha",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "anomalyThreshold",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "attackHistory",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "node",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "timestamp",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "anomalyScore",
+        "type": "uint256"
+      },
+      {
+        "internalType": "string",
+        "name": "attackType",
+        "type": "string"
+      },
+      {
+        "internalType": "bool",
+        "name": "resolved",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "beta",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "congestionIndex",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "currentGap",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "delta",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "gamma",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "maxProbability",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "minProbability",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "mu",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "networkCapacity",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "nextShardId",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "nodeAttackIndices",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "nodesList",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "nodes",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "nodeAddress",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "performance",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "reliability",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "anomalyScore",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "weight",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "isolationTime",
+        "type": "uint256"
+      },
+      {
+        "internalType": "enum BCADN.NodeStatus",
+        "name": "status",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "owner",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "pendingTransactions",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "probationPeriod",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "renounceOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "shardIds",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "shards",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "id",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "capacity",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "currentLoad",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "active",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "transferOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "name": "transactionHashes",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "name": "transactionToShard",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "name": "transactions",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "txHash",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "receiver",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "fee",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "timestamp",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "processingTime",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "completed",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_probability",
+        "type": "uint256"
+      }
+    ],
+    "name": "adjustToProbabilityGap",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_probability",
+        "type": "uint256"
+      }
+    ],
+    "name": "isWithinGap",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_baseFee",
+        "type": "uint256"
+      }
+    ],
+    "name": "calculateDynamicFee",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_nodeAddress",
+        "type": "address"
+      }
+    ],
+    "name": "checkProbationStatus",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getAllNodes",
+    "outputs": [
+      {
+        "internalType": "address[]",
+        "name": "",
+        "type": "address[]"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "",
+        "type": "uint256[]"
+      },
+      {
+        "internalType": "enum BCADN.NodeStatus[]",
+        "name": "",
+        "type": "uint8[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getAllShards",
+    "outputs": [
+      {
+        "internalType": "uint256[]",
+        "name": "",
+        "type": "uint256[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "_txHash",
+        "type": "bytes32"
+      }
+    ],
+    "name": "assignTransactionToShard",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getAttackHistory",
+    "outputs": [
+      {
+        "internalType": "address[]",
+        "name": "nodeAddresses",
+        "type": "address[]"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "timestamps",
+        "type": "uint256[]"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "anomalyScores",
+        "type": "uint256[]"
+      },
+      {
+        "internalType": "bool[]",
+        "name": "resolved",
+        "type": "bool[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getAllTransactionHashes",
+    "outputs": [
+      {
+        "internalType": "bytes32[]",
+        "name": "",
+        "type": "bytes32[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_alpha",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_beta",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_gamma",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_delta",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_mu",
+        "type": "uint256"
+      }
+    ],
+    "name": "updateNetworkParams",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_anomalyThreshold",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_probationPeriod",
+        "type": "uint256"
+      }
+    ],
+    "name": "updateThresholds",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_minProbability",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_maxProbability",
+        "type": "uint256"
+      }
+    ],
+    "name": "updateProbabilityRange",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_capacity",
+        "type": "uint256"
+      }
+    ],
+    "name": "setNetworkCapacity",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_nodeAddress",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_performance",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_reliability",
+        "type": "uint256"
+      }
+    ],
+    "name": "registerNode",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_nodeAddress",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_performance",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_reliability",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_anomalyScore",
+        "type": "uint256"
+      }
+    ],
+    "name": "updateNodeMetrics",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_capacity",
+        "type": "uint256"
+      }
+    ],
+    "name": "createShard",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_shardId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "_node",
+        "type": "address"
+      }
+    ],
+    "name": "addNodeToShard",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_shardId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "_node",
+        "type": "address"
+      }
+    ],
+    "name": "removeNodeFromShard",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_node",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_anomalyScore",
+        "type": "uint256"
+      },
+      {
+        "internalType": "string",
+        "name": "_attackType",
+        "type": "string"
+      }
+    ],
+    "name": "recordAnomaly",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_attackIndex",
+        "type": "uint256"
+      }
+    ],
+    "name": "resolveAnomaly",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_receiver",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_amount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_baseFee",
+        "type": "uint256"
+      }
+    ],
+    "name": "submitTransaction",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "_txHash",
+        "type": "bytes32"
+      }
+    ],
+    "name": "processTransaction",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "withdrawFees",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+]}
         
-        # Load sample data
-        analyzer.load_sample_data()
+        # Load contract with custom ABI
+        analyzer.abi = custom_abi["abi"]
+        contract_details = analyzer.load_contract()
+        contract = contract_details['contract']
+
+        # Get the private key from environment
+        private_key = os.getenv('PRIVATE_KEY')
+        if not private_key:
+            raise ValueError("PRIVATE_KEY not found in environment variables")
         
-        # Analyze network performance
-        network_results = analyzer.analyze_network_performance()
+        # Add '0x' prefix if it's missing
+        if not private_key.startswith('0x'):
+            private_key = '0x' + private_key
 
-        # Run stress test simulation
-        stress_test_results = analyzer.simulate_network_stress_test()
+        # Test data for BCADN contract interaction
+        print("\n=== BCADN Network Simulation ===")
 
-        # Combine results
-        network_results["stress_test"] = stress_test_results
+        # 1. Register nodes with varying performance levels
+        node_data = [
+            {"id": "node_01", "performance": 95, "reliability": 97},  # High performance
+            {"id": "node_02", "performance": 92, "reliability": 94},  # High performance
+            {"id": "node_03", "performance": 89, "reliability": 91},  # Medium-high performance
+            {"id": "node_04", "performance": 85, "reliability": 88},  # Medium performance
+            {"id": "node_05", "performance": 82, "reliability": 85},  # Medium performance
+            {"id": "node_06", "performance": 78, "reliability": 82},  # Medium-low performance
+            {"id": "node_07", "performance": 75, "reliability": 80},  # Medium-low performance 
+            {"id": "node_08", "performance": 72, "reliability": 78},  # Low performance
+            {"id": "node_09", "performance": 68, "reliability": 72},  # Low performance
+            {"id": "node_10", "performance": 65, "reliability": 70},  # Low performance
+            {"id": "node_11", "performance": 90, "reliability": 93},  # High performance
+            {"id": "node_12", "performance": 86, "reliability": 89},  # Medium-high performance
+            {"id": "node_13", "performance": 80, "reliability": 85},  # Medium performance
+            {"id": "node_14", "performance": 74, "reliability": 79},  # Medium-low performance
+            {"id": "node_15", "performance": 69, "reliability": 75},  # Low performance
+        ]
 
-        # Visualize network analysis
-        analyzer.visualize_network_analysis(network_results)
+        print("\n--- Registering Nodes ---")
+        for node in node_data:
+            if use_simulation:
+                analyzer.simulate_register_node(node["id"], node["performance"], node["reliability"])
+            else:
+                # This would be real blockchain transaction in non-simulation mode
+                # Skipping real transaction implementation for brevity
+                pass
+        
+        # 2. Create shards
+        print("\n--- Creating Shards ---")
+        shard_data = [
+            {"id": 1, "capacity": 1000},  # High capacity
+            {"id": 2, "capacity": 800},   # Medium-high capacity
+            {"id": 3, "capacity": 600},   # Medium capacity
+            {"id": 4, "capacity": 400},   # Medium-low capacity
+            {"id": 5, "capacity": 200}    # Low capacity
+        ]
+        
+        for shard in shard_data:
+            if use_simulation:
+                analyzer.simulate_create_shard(shard["id"], shard["capacity"])
+            else:
+                # This would be real blockchain transaction in non-simulation mode
+                pass
+                
+        # 3. Assign nodes to shards
+        print("\n--- Assigning Nodes to Shards ---")
+        # Distribute nodes across shards
+        node_assignments = [
+            {"shard_id": 1, "node_ids": ["node_01", "node_02", "node_03"]},
+            {"shard_id": 2, "node_ids": ["node_04", "node_05", "node_06"]},
+            {"shard_id": 3, "node_ids": ["node_07", "node_08", "node_09"]},
+            {"shard_id": 4, "node_ids": ["node_10", "node_11", "node_12"]},
+            {"shard_id": 5, "node_ids": ["node_13", "node_14", "node_15"]}
+        ]
+        
+        for assignment in node_assignments:
+            for node_id in assignment["node_ids"]:
+                if use_simulation:
+                    analyzer.simulate_add_node_to_shard(assignment["shard_id"], node_id)
+                else:
+                    # This would be real blockchain transaction in non-simulation mode
+                    pass
+                    
+        # 4. Submit transactions
+        print("\n--- Submitting Transactions ---")
+        
+        # Create sample transactions with different volumes
+        transaction_data = []
+        for i in range(1, 51):  # 50 transactions
+            sender = f"account_{random.randint(1, 100)}"
+            receiver = f"account_{random.randint(1, 100)}"
+            amount = random.randint(100, 10000)
+            transaction_data.append({"sender": sender, "receiver": receiver, "amount": amount})
+            
+        # Submit transactions in batches to simulate network traffic
+        tx_hashes = []
+        for i, tx in enumerate(transaction_data):
+            if use_simulation:
+                tx_hash = analyzer.simulate_submit_transaction(tx["sender"], tx["receiver"], tx["amount"])
+                tx_hashes.append(tx_hash)
+                # Simulate small delay between transactions
+                if i % 10 == 0:
+                    time.sleep(0.1)
+            else:
+                # This would be real blockchain transaction in non-simulation mode
+                pass
+        
+        # 5. Simulate anomalies on some nodes
+        print("\n--- Simulating Anomalies ---")
+        
+        # Define sample attack scenarios with different types and severity
+        attack_scenarios = [
+            {"node_id": "node_03", "anomaly_score": 25, "attack_type": "Unusual Traffic Pattern"},
+            {"node_id": "node_08", "anomaly_score": 35, "attack_type": "DDoS Attempt"},
+            {"node_id": "node_14", "anomaly_score": 40, "attack_type": "Malicious Connection Attempt"},
+            {"node_id": "node_05", "anomaly_score": 15, "attack_type": "Data Manipulation Probe"},
+            {"node_id": "node_11", "anomaly_score": 28, "attack_type": "Resource Exhaustion"}
+        ]
+        
+        anomaly_ids = []
+        for attack in attack_scenarios:
+            if use_simulation:
+                anomaly_id = analyzer.simulate_record_anomaly(
+                    attack["node_id"], 
+                    attack["anomaly_score"], 
+                    attack["attack_type"]
+                )
+                anomaly_ids.append(anomaly_id)
+                # Short delay between anomalies
+                time.sleep(0.1)
+            else:
+                # This would be real blockchain transaction in non-simulation mode
+                pass
+        
+        # 6. Process some of the transactions
+        print("\n--- Processing Transactions ---")
+        
+        # Process 70% of transactions (simulating network throughput)
+        tx_to_process = tx_hashes[:int(len(tx_hashes) * 0.7)]
+        for tx_hash in tx_to_process:
+            if use_simulation:
+                analyzer.simulate_process_transaction(tx_hash)
+                # Small delay to simulate processing time
+                time.sleep(0.05)
+            else:
+                # This would be real blockchain transaction in non-simulation mode
+                pass
+                
+        # 7. Collect and display network statistics
+        print("\n=== BCADN Network Analysis Results ===")
+        
+        # Node statistics
+        if use_simulation:
+            node_stats = analyzer.get_node_stats()
+            if node_stats:
+                print("\n--- Node Statistics ---")
+                print(f"Total Nodes: {node_stats['totalNodes']}")
+                print(f"Active Nodes: {node_stats['activeNodes']} ({node_stats['activeNodes']/node_stats['totalNodes']*100:.1f}%)")
+                print(f"Probation Nodes: {node_stats['probationNodes']} ({node_stats['probationNodes']/node_stats['totalNodes']*100:.1f}%)")
+                print(f"Excluded Nodes: {node_stats['excludedNodes']} ({node_stats['excludedNodes']/node_stats['totalNodes']*100:.1f}%)")
+                print(f"Average Performance: {node_stats['avgPerformance']:.2f}")
+                print(f"Average Reliability: {node_stats['avgReliability']:.2f}")
+                print(f"Average Anomaly Score: {node_stats['avgAnomalyScore']:.2f}")
+        
+        # Network statistics
+        if use_simulation:
+            network_stats = analyzer.get_network_stats()
+            if network_stats:
+                print("\n--- Network Statistics ---")
+                print(f"Total Transactions: {network_stats['totalTransactions']}")
+                print(f"Completed Transactions: {network_stats['completedTransactions']} ({network_stats['completedTransactions']/network_stats['totalTransactions']*100:.1f}%)")
+                print(f"Pending Transactions: {network_stats['pendingTransactions']} ({network_stats['pendingTransactions']/network_stats['totalTransactions']*100:.1f}%)")
+                print(f"Average Fee: {network_stats['averageFee']:.2f}")
+                print(f"Average Processing Time: {network_stats['averageProcessingTime']:.2f} seconds")
+                print(f"Total Shards: {network_stats['totalShards']}")
+                print(f"Total Capacity: {network_stats['totalCapacity']}")
+                print(f"Current Load: {network_stats['currentLoad']} ({network_stats['loadPercentage']:.1f}%)")
+        
+        # Anomaly statistics
+        if use_simulation:
+            anomalies = analyzer.get_all_anomalies()
+            if anomalies:
+                print("\n--- Anomaly Statistics ---")
+                print(f"Total Anomalies Detected: {len(anomalies)}")
+                
+                # Group by attack type
+                attack_types = {}
+                for anomaly in anomalies:
+                    attack_type = anomaly["attackType"]
+                    if attack_type in attack_types:
+                        attack_types[attack_type] += 1
+                    else:
+                        attack_types[attack_type] = 1
+                        
+                print("Breakdown by Attack Type:")
+                for attack_type, count in attack_types.items():
+                    print(f"  - {attack_type}: {count} ({count/len(anomalies)*100:.1f}%)")
+                    
+                # Average anomaly score
+                avg_score = sum(anomaly["anomalyScore"] for anomaly in anomalies) / len(anomalies)
+                print(f"Average Anomaly Score: {avg_score:.2f}")
+        
+        # High-level assessment
+        if use_simulation:
+            print("\n--- Network Assessment ---")
+            
+            # Calculate overall network health
+            completed_ratio = network_stats['completedTransactions'] / network_stats['totalTransactions']
+            active_node_ratio = node_stats['activeNodes'] / node_stats['totalNodes']
+            load_ratio = network_stats['currentLoad'] / network_stats['totalCapacity']
+            anomaly_ratio = len(anomalies) / node_stats['totalNodes']
+            
+            health_score = (completed_ratio * 0.4) + (active_node_ratio * 0.3) + ((1 - load_ratio) * 0.2) + ((1 - anomaly_ratio) * 0.1)
+            health_score = health_score * 100
+            
+            print(f"Overall Network Health Score: {health_score:.1f}%")
+            
+            if health_score >= 90:
+                health_rating = "Excellent"
+            elif health_score >= 80:
+                health_rating = "Good"
+            elif health_score >= 70:
+                health_rating = "Satisfactory"
+            elif health_score >= 60:
+                health_rating = "Fair"
+            else:
+                health_rating = "Poor"
+                
+            print(f"Network Health Rating: {health_rating}")
+            
+            # Performance bottlenecks
+            print("\nPotential Bottlenecks:")
+            if load_ratio > 0.8:
+                print("  - High network load exceeding 80% of capacity")
+            if node_stats['probationNodes'] > 0:
+                print(f"  - {node_stats['probationNodes']} nodes on probation due to anomalies")
+            if network_stats['pendingTransactions'] / network_stats['totalTransactions'] > 0.3:
+                print("  - High percentage of pending transactions (>30%)")
+            
+            # Recommendations
+            print("\nRecommendations:")
+            if load_ratio > 0.8:
+                print("  - Increase network capacity or add more shards")
+            if node_stats['probationNodes'] > 0:
+                print("  - Investigate and resolve node anomalies")
+            if anomaly_ratio > 0.2:
+                print("  - Enhance security monitoring and implement countermeasures")
+            if network_stats['pendingTransactions'] / network_stats['totalTransactions'] > 0.3:
+                print("  - Optimize transaction processing or add more processing nodes")
 
     except Exception as e:
-        logging.error(f"An error occurred in main: {e}")
+        logging.error(f"An error occurred: {e}")
         import traceback
-        traceback.print_exc()  # Print full stack trace
+        traceback.print_exc()
         sys.exit(1)
-
 
 if __name__ == "__main__":
     main()

@@ -47,7 +47,8 @@ interface BlockchainContextType {
 
 
 // Updated type definition
-type ContractType = Contract<any> & {
+// Corrected type definition
+type ContractType = Contract & {
   options?: { 
     address?: string 
   };

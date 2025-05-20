@@ -1,0 +1,573 @@
+{
+    "abi": [
+      {
+        "anonymous": false,
+        "inputs": [
+          {
+            "indexed": true,
+            "internalType": "string",
+            "name": "pathId",
+            "type": "string"
+          },
+          {
+            "indexed": false,
+            "internalType": "uint256",
+            "name": "disjointPathIndex",
+            "type": "uint256"
+          }
+        ],
+        "name": "DisjointPathCreated",
+        "type": "event"
+      },
+      {
+        "anonymous": false,
+        "inputs": [
+          {
+            "indexed": true,
+            "internalType": "string",
+            "name": "nodeId",
+            "type": "string"
+          },
+          {
+            "indexed": false,
+            "internalType": "uint256",
+            "name": "successRate",
+            "type": "uint256"
+          }
+        ],
+        "name": "NodePerformanceUpdated",
+        "type": "event"
+      },
+      {
+        "anonymous": false,
+        "inputs": [
+          {
+            "indexed": true,
+            "internalType": "string",
+            "name": "pathId",
+            "type": "string"
+          },
+          {
+            "indexed": false,
+            "internalType": "string",
+            "name": "sourceNode",
+            "type": "string"
+          },
+          {
+            "indexed": false,
+            "internalType": "string",
+            "name": "destinationNode",
+            "type": "string"
+          }
+        ],
+        "name": "PathCreated",
+        "type": "event"
+      },
+      {
+        "anonymous": false,
+        "inputs": [
+          {
+            "indexed": true,
+            "internalType": "string",
+            "name": "pathId",
+            "type": "string"
+          },
+          {
+            "indexed": false,
+            "internalType": "string",
+            "name": "failedNode",
+            "type": "string"
+          },
+          {
+            "indexed": false,
+            "internalType": "string[]",
+            "name": "newSequence",
+            "type": "string[]"
+          }
+        ],
+        "name": "PathRerouted",
+        "type": "event"
+      },
+      {
+        "anonymous": false,
+        "inputs": [
+          {
+            "indexed": true,
+            "internalType": "string",
+            "name": "pathId",
+            "type": "string"
+          },
+          {
+            "indexed": false,
+            "internalType": "uint8",
+            "name": "status",
+            "type": "uint8"
+          }
+        ],
+        "name": "PathStatusChanged",
+        "type": "event"
+      },
+      {
+        "anonymous": false,
+        "inputs": [
+          {
+            "indexed": true,
+            "internalType": "string",
+            "name": "pathId",
+            "type": "string"
+          },
+          {
+            "indexed": false,
+            "internalType": "string[]",
+            "name": "pathSequence",
+            "type": "string[]"
+          }
+        ],
+        "name": "PathUpdated",
+        "type": "event"
+      },
+      {
+        "anonymous": false,
+        "inputs": [
+          {
+            "indexed": true,
+            "internalType": "string",
+            "name": "pathId",
+            "type": "string"
+          },
+          {
+            "indexed": false,
+            "internalType": "uint256",
+            "name": "endTime",
+            "type": "uint256"
+          },
+          {
+            "indexed": false,
+            "internalType": "uint256",
+            "name": "packetsLost",
+            "type": "uint256"
+          }
+        ],
+        "name": "TransmissionCompleted",
+        "type": "event"
+      },
+      {
+        "anonymous": false,
+        "inputs": [
+          {
+            "indexed": true,
+            "internalType": "string",
+            "name": "pathId",
+            "type": "string"
+          },
+          {
+            "indexed": false,
+            "internalType": "uint256",
+            "name": "startTime",
+            "type": "uint256"
+          }
+        ],
+        "name": "TransmissionStarted",
+        "type": "event"
+      },
+      {
+        "inputs": [],
+        "name": "allPathIds",
+        "outputs": [
+          {
+            "internalType": "string[]",
+            "name": "",
+            "type": "string[]"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "string",
+            "name": "_pathId",
+            "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "_packetsLost",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint16",
+            "name": "_measuredLatency",
+            "type": "uint16"
+          },
+          {
+            "internalType": "bool",
+            "name": "_complianceCheck",
+            "type": "bool"
+          }
+        ],
+        "name": "completeTransmission",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "string",
+            "name": "_pathId",
+            "type": "string"
+          },
+          {
+            "internalType": "string[]",
+            "name": "_disjointSequence",
+            "type": "string[]"
+          }
+        ],
+        "name": "createDisjointPath",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "string",
+            "name": "_pathId",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "_sourceNode",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "_destinationNode",
+            "type": "string"
+          },
+          {
+            "internalType": "string[]",
+            "name": "_pathSequence",
+            "type": "string[]"
+          },
+          {
+            "internalType": "string",
+            "name": "_serviceClass",
+            "type": "string"
+          }
+        ],
+        "name": "createPath",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "string",
+            "name": "",
+            "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "name": "disjointPaths",
+        "outputs": [
+          {
+            "internalType": "string",
+            "name": "pathId",
+            "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "creationTime",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bool",
+            "name": "isActive",
+            "type": "bool"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "string",
+            "name": "_nodeId",
+            "type": "string"
+          }
+        ],
+        "name": "getNodePerformance",
+        "outputs": [
+          {
+            "internalType": "uint256",
+            "name": "successRate",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "packetCount",
+            "type": "uint256"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "string",
+            "name": "_serviceClass",
+            "type": "string"
+          }
+        ],
+        "name": "getPathsByServiceClass",
+        "outputs": [
+          {
+            "internalType": "string[]",
+            "name": "",
+            "type": "string[]"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "string",
+            "name": "",
+            "type": "string"
+          }
+        ],
+        "name": "nodePacketCount",
+        "outputs": [
+          {
+            "internalType": "uint256",
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "string",
+            "name": "",
+            "type": "string"
+          }
+        ],
+        "name": "nodeSuccessRate",
+        "outputs": [
+          {
+            "internalType": "uint256",
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "string",
+            "name": "",
+            "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "name": "nodeToActivePaths",
+        "outputs": [
+          {
+            "internalType": "string",
+            "name": "",
+            "type": "string"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "string",
+            "name": "",
+            "type": "string"
+          }
+        ],
+        "name": "paths",
+        "outputs": [
+          {
+            "internalType": "string",
+            "name": "pathId",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "sourceNode",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "destinationNode",
+            "type": "string"
+          },
+          {
+            "internalType": "bool",
+            "name": "isActive",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint256",
+            "name": "creationTime",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "lastUpdated",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint8",
+            "name": "pathStatus",
+            "type": "uint8"
+          },
+          {
+            "internalType": "string",
+            "name": "serviceClass",
+            "type": "string"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "string",
+            "name": "",
+            "type": "string"
+          }
+        ],
+        "name": "pathStatus",
+        "outputs": [
+          {
+            "internalType": "uint256",
+            "name": "startTime",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "endTime",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "packetsTotal",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "packetsLost",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint16",
+            "name": "measuredLatency",
+            "type": "uint16"
+          },
+          {
+            "internalType": "uint8",
+            "name": "securityLevel",
+            "type": "uint8"
+          },
+          {
+            "internalType": "bool",
+            "name": "complianceCheck",
+            "type": "bool"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "string",
+            "name": "",
+            "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "name": "pathsByService",
+        "outputs": [
+          {
+            "internalType": "string",
+            "name": "",
+            "type": "string"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "string",
+            "name": "_pathId",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "_failedNodeId",
+            "type": "string"
+          }
+        ],
+        "name": "reroutePath",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "string",
+            "name": "_pathId",
+            "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "_packetsTotal",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint8",
+            "name": "_securityLevel",
+            "type": "uint8"
+          }
+        ],
+        "name": "startTransmission",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      }
+    ]
+  }

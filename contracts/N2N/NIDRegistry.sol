@@ -8,8 +8,8 @@ pragma solidity ^0.8.17;
 contract NIDRegistry {
     // Struct to store NID information
     struct NodeID {
-        bytes32 primaryId;       // Primary ID hash (static)
-        bytes32 secondaryId;     // Secondary ID hash (dynamic)
+        string primaryId;       // Primary ID (static)
+        string secondaryId;     // Secondary ID (dynamic)
         uint256 registrationTime;// Time when the node was registered
         bool isActive;           // Whether the node is currently active
         uint8 securityLevel;     // Security level (0-255)
@@ -17,38 +17,38 @@ contract NIDRegistry {
         string nodeType;         // Type of node (e.g., "VALIDATOR", "RELAY", "EDGE")
     }
     
-    // Mapping from NID hash to NodeID struct
-    mapping(bytes32 => NodeID) public nodes;
+    // Mapping from NID to NodeID struct
+    mapping(string => NodeID) public nodes;
     
-    // Array to store all registered NID primary hashes
-    bytes32[] public allNodeIds;
+    // Array to store all registered NID primary IDs
+    string[] public allNodeIds;
     
     // Mapping from cluster ID to array of node IDs in that cluster
-    mapping(uint8 => bytes32[]) public clusterNodes;
+    mapping(uint8 => string[]) public clusterNodes;
     
     // Events
-    event NodeRegistered(bytes32 indexed primaryId, uint8 clusterID, string nodeType);
-    event NodeUpdated(bytes32 indexed primaryId, bytes32 secondaryId);
-    event NodeStatusChanged(bytes32 indexed primaryId, bool isActive);
-    event NodeSecurityLevelChanged(bytes32 indexed primaryId, uint8 securityLevel);
-    event NodeClusterChanged(bytes32 indexed primaryId, uint8 oldClusterID, uint8 newClusterID);
+    event NodeRegistered(string indexed primaryId, uint8 clusterID, string nodeType);
+    event NodeUpdated(string indexed primaryId, string secondaryId);
+    event NodeStatusChanged(string indexed primaryId, bool isActive);
+    event NodeSecurityLevelChanged(string indexed primaryId, uint8 securityLevel);
+    event NodeClusterChanged(string indexed primaryId, uint8 oldClusterID, uint8 newClusterID);
     
     /**
      * @dev Register a new node
-     * @param _primaryId Primary ID hash
-     * @param _secondaryId Secondary ID hash
+     * @param _primaryId Primary ID
+     * @param _secondaryId Secondary ID
      * @param _securityLevel Security level
      * @param _clusterID Cluster ID
      * @param _nodeType Type of node
      */
     function registerNode(
-        bytes32 _primaryId,
-        bytes32 _secondaryId,
+        string memory _primaryId,
+        string memory _secondaryId,
         uint8 _securityLevel,
         uint8 _clusterID,
         string memory _nodeType
     ) public {
-        require(nodes[_primaryId].registrationTime == 0, "Node already registered");
+        require(bytes(nodes[_primaryId].primaryId).length == 0, "Node already registered");
         
         nodes[_primaryId] = NodeID({
             primaryId: _primaryId,
@@ -68,11 +68,11 @@ contract NIDRegistry {
     
     /**
      * @dev Update node's secondary ID (for dynamic attributes)
-     * @param _primaryId Primary ID hash
-     * @param _newSecondaryId New secondary ID hash
+     * @param _primaryId Primary ID
+     * @param _newSecondaryId New secondary ID
      */
-    function updateSecondaryId(bytes32 _primaryId, bytes32 _newSecondaryId) public {
-        require(nodes[_primaryId].registrationTime != 0, "Node not registered");
+    function updateSecondaryId(string memory _primaryId, string memory _newSecondaryId) public {
+        require(bytes(nodes[_primaryId].primaryId).length > 0, "Node not registered");
         
         nodes[_primaryId].secondaryId = _newSecondaryId;
         
@@ -81,11 +81,11 @@ contract NIDRegistry {
     
     /**
      * @dev Change node's active status
-     * @param _primaryId Primary ID hash
+     * @param _primaryId Primary ID
      * @param _isActive New active status
      */
-    function setNodeStatus(bytes32 _primaryId, bool _isActive) public {
-        require(nodes[_primaryId].registrationTime != 0, "Node not registered");
+    function setNodeStatus(string memory _primaryId, bool _isActive) public {
+        require(bytes(nodes[_primaryId].primaryId).length > 0, "Node not registered");
         
         nodes[_primaryId].isActive = _isActive;
         
@@ -94,11 +94,11 @@ contract NIDRegistry {
     
     /**
      * @dev Change node's security level
-     * @param _primaryId Primary ID hash
+     * @param _primaryId Primary ID
      * @param _securityLevel New security level
      */
-    function setSecurityLevel(bytes32 _primaryId, uint8 _securityLevel) public {
-        require(nodes[_primaryId].registrationTime != 0, "Node not registered");
+    function setSecurityLevel(string memory _primaryId, uint8 _securityLevel) public {
+        require(bytes(nodes[_primaryId].primaryId).length > 0, "Node not registered");
         
         nodes[_primaryId].securityLevel = _securityLevel;
         
@@ -107,11 +107,11 @@ contract NIDRegistry {
     
     /**
      * @dev Move node to different cluster
-     * @param _primaryId Primary ID hash
+     * @param _primaryId Primary ID
      * @param _newClusterID New cluster ID
      */
-    function changeNodeCluster(bytes32 _primaryId, uint8 _newClusterID) public {
-        require(nodes[_primaryId].registrationTime != 0, "Node not registered");
+    function changeNodeCluster(string memory _primaryId, uint8 _newClusterID) public {
+        require(bytes(nodes[_primaryId].primaryId).length > 0, "Node not registered");
         
         uint8 oldClusterID = nodes[_primaryId].clusterID;
         require(oldClusterID != _newClusterID, "Node already in this cluster");
@@ -128,14 +128,14 @@ contract NIDRegistry {
     
     /**
      * @dev Helper function to remove node from cluster
-     * @param _primaryId Primary ID hash
+     * @param _primaryId Primary ID
      * @param _clusterID Cluster ID
      */
-    function removeFromCluster(bytes32 _primaryId, uint8 _clusterID) internal {
-        bytes32[] storage nodesInCluster = clusterNodes[_clusterID];
+    function removeFromCluster(string memory _primaryId, uint8 _clusterID) internal {
+        string[] storage nodesInCluster = clusterNodes[_clusterID];
         
         for (uint i = 0; i < nodesInCluster.length; i++) {
-            if (nodesInCluster[i] == _primaryId) {
+            if (keccak256(bytes(nodesInCluster[i])) == keccak256(bytes(_primaryId))) {
                 // Swap with the last element and then remove the last element
                 nodesInCluster[i] = nodesInCluster[nodesInCluster.length - 1];
                 nodesInCluster.pop();
@@ -149,7 +149,7 @@ contract NIDRegistry {
      * @param _clusterID Cluster ID
      * @return Array of node primary IDs in the cluster
      */
-    function getNodesInCluster(uint8 _clusterID) public view returns (bytes32[] memory) {
+    function getNodesInCluster(uint8 _clusterID) public view returns (string[] memory) {
         return clusterNodes[_clusterID];
     }
     
@@ -163,14 +163,14 @@ contract NIDRegistry {
     
     /**
      * @dev Get node details
-     * @param _primaryId Primary ID hash
+     * @param _primaryId Primary ID
      * @return Node details (primaryId, secondaryId, registrationTime, isActive, securityLevel, clusterID, nodeType)
      */
-    function getNodeDetails(bytes32 _primaryId) public view returns (
-        bytes32, bytes32, uint256, bool, uint8, uint8, string memory
+    function getNodeDetails(string memory _primaryId) public view returns (
+        string memory, string memory, uint256, bool, uint8, uint8, string memory
     ) {
         NodeID memory node = nodes[_primaryId];
-        require(node.registrationTime != 0, "Node not registered");
+        require(bytes(node.primaryId).length > 0, "Node not registered");
         
         return (
             node.primaryId,
@@ -185,20 +185,20 @@ contract NIDRegistry {
     
     /**
      * @dev Check if a node exists
-     * @param _primaryId Primary ID hash
+     * @param _primaryId Primary ID
      * @return Whether the node exists
      */
-    function nodeExists(bytes32 _primaryId) public view returns (bool) {
-        return nodes[_primaryId].registrationTime != 0;
+    function nodeExists(string memory _primaryId) public view returns (bool) {
+        return bytes(nodes[_primaryId].primaryId).length > 0;
     }
     
     /**
      * @dev Check if a node is active
-     * @param _primaryId Primary ID hash
+     * @param _primaryId Primary ID
      * @return Whether the node is active
      */
-    function isNodeActive(bytes32 _primaryId) public view returns (bool) {
-        require(nodes[_primaryId].registrationTime != 0, "Node not registered");
+    function isNodeActive(string memory _primaryId) public view returns (bool) {
+        require(bytes(nodes[_primaryId].primaryId).length > 0, "Node not registered");
         return nodes[_primaryId].isActive;
     }
 }

@@ -5,41 +5,37 @@ import "./NIDRegistry.sol";
 import "./NIASRegistry.sol";
 import "./ABATLTranslation.sol";
 
-/**
- * @title ClusteringContract
- * @dev Contract for clustering nodes based on attributes and managing cluster dynamics
- */
 contract ClusteringContract {
     // Cluster structure
     struct Cluster {
-        uint8 clusterId;              // Unique cluster identifier
-        string clusterName;           // Human-readable name
-        uint8 clusterType;            // 0 = NAP cluster, 1 = B-BGP cluster
-        uint256 creationTime;         // When the cluster was created
-        uint256 validUntil;           // Expiration time for the cluster
-        uint8 securityLevel;          // Required security level for members
-        uint16 maxLatency;            // Maximum acceptable latency in ms
-        uint16 minBandwidth;          // Minimum required bandwidth in Mbps
-        bool isActive;                // Whether the cluster is active
-        uint256 nodeCount;            // Number of nodes in the cluster
+        uint8 clusterId;              
+        string clusterName;           
+        uint8 clusterType;            
+        uint256 creationTime;         
+        uint256 validUntil;           
+        uint8 securityLevel;          
+        uint16 maxLatency;            
+        uint16 minBandwidth;          
+        bool isActive;                
+        uint256 nodeCount;            
     }
     
     // ClusterMembership record
     struct ClusterMembership {
-        bytes32 nodeId;              // Node ID (NID or NIAS)
-        uint8 clusterId;             // Cluster ID
-        uint256 joinTime;            // When the node joined the cluster
-        bool isActive;               // Whether the membership is active
+        string nodeId;                
+        uint8 clusterId;              
+        uint256 joinTime;             
+        bool isActive;                
     }
     
     // Metrics structure for cluster
     struct ClusterMetrics {
-        uint16 avgLatency;           // Average latency across all nodes
-        uint16 avgBandwidth;         // Average bandwidth across all nodes
-        uint8 avgSecurityLevel;      // Average security level across all nodes
-        uint256 successfulTransmissions; // Number of successful transmissions
-        uint256 failedTransmissions;  // Number of failed transmissions
-        uint256 lastUpdated;          // When metrics were last updated
+        uint16 avgLatency;            
+        uint16 avgBandwidth;          
+        uint8 avgSecurityLevel;       
+        uint256 successfulTransmissions; 
+        uint256 failedTransmissions;  
+        uint256 lastUpdated;          
     }
     
     // Core registries
@@ -48,11 +44,11 @@ contract ClusteringContract {
     ABATLTranslation public abatlTranslation;
     
     // Cluster storage
-    mapping(uint8 => Cluster) public clusters;                    // Cluster ID to Cluster
-    mapping(uint8 => bytes32[]) public clusterMembers;            // Cluster ID to member node IDs
-    mapping(bytes32 => uint8[]) public nodeClusters;              // Node ID to array of cluster IDs
-    mapping(bytes32 => mapping(uint8 => ClusterMembership)) public memberships; // Node ID and Cluster ID to ClusterMembership
-    mapping(uint8 => ClusterMetrics) public clusterMetrics;       // Cluster ID to ClusterMetrics
+    mapping(uint8 => Cluster) public clusters;                    
+    mapping(uint8 => string[]) public clusterMembers;             
+    mapping(string => uint8[]) public nodeClusters;               
+    mapping(string => mapping(uint8 => ClusterMembership)) public memberships; 
+    mapping(uint8 => ClusterMetrics) public clusterMetrics;       
     
     // All cluster IDs
     uint8[] public allClusterIds;
@@ -60,17 +56,11 @@ contract ClusteringContract {
     // Events
     event ClusterCreated(uint8 indexed clusterId, string clusterName, uint8 clusterType);
     event ClusterUpdated(uint8 indexed clusterId, uint256 validUntil, bool isActive);
-    event NodeAddedToCluster(bytes32 indexed nodeId, uint8 indexed clusterId);
-    event NodeRemovedFromCluster(bytes32 indexed nodeId, uint8 indexed clusterId);
+    event NodeAddedToCluster(string indexed nodeId, uint8 indexed clusterId);
+    event NodeRemovedFromCluster(string indexed nodeId, uint8 indexed clusterId);
     event ClusterMetricsUpdated(uint8 indexed clusterId, uint16 avgLatency, uint16 avgBandwidth);
     event ClusterReclustered(uint8 indexed oldClusterId, uint8 indexed newClusterId);
     
-    /**
-     * @dev Constructor
-     * @param _nidRegistryAddress Address of NIDRegistry contract
-     * @param _niasRegistryAddress Address of NIASRegistry contract
-     * @param _abatlTranslationAddress Address of ABATLTranslation contract
-     */
     constructor(
         address _nidRegistryAddress,
         address _niasRegistryAddress,
@@ -81,16 +71,6 @@ contract ClusteringContract {
         abatlTranslation = ABATLTranslation(_abatlTranslationAddress);
     }
     
-    /**
-     * @dev Create a new cluster
-     * @param _clusterId Unique cluster identifier
-     * @param _clusterName Human-readable name
-     * @param _clusterType Cluster type (0 = NAP, 1 = B-BGP)
-     * @param _validUntil Expiration time
-     * @param _securityLevel Required security level
-     * @param _maxLatency Maximum acceptable latency
-     * @param _minBandwidth Minimum required bandwidth
-     */
     function createCluster(
         uint8 _clusterId,
         string memory _clusterName,
@@ -135,64 +115,9 @@ contract ClusteringContract {
         emit ClusterCreated(_clusterId, _clusterName, _clusterType);
     }
     
-    /**
-     * @dev Update cluster parameters
-     * @param _clusterId Cluster ID
-     * @param _validUntil New expiration time
-     * @param _securityLevel New security level
-     * @param _maxLatency New maximum latency
-     * @param _minBandwidth New minimum bandwidth
-     * @param _isActive New active status
-     */
-    function updateCluster(
-        uint8 _clusterId,
-        uint256 _validUntil,
-        uint8 _securityLevel,
-        uint16 _maxLatency,
-        uint16 _minBandwidth,
-        bool _isActive
-    ) public {
-        // Verify cluster exists
-        require(clusters[_clusterId].creationTime != 0, "Cluster does not exist");
-        require(_validUntil > block.timestamp, "Valid until must be in the future");
-        
-        // Update cluster
-        clusters[_clusterId].validUntil = _validUntil;
-        clusters[_clusterId].securityLevel = _securityLevel;
-        clusters[_clusterId].maxLatency = _maxLatency;
-        clusters[_clusterId].minBandwidth = _minBandwidth;
-        clusters[_clusterId].isActive = _isActive;
-        
-        emit ClusterUpdated(_clusterId, _validUntil, _isActive);
-    }
-    
-    /**
-     * @dev Add a node to a cluster
-     * @param _nodeId Node ID
-     * @param _clusterId Cluster ID
-     */
-    function addNodeToCluster(bytes32 _nodeId, uint8 _clusterId) public {
-        // Verify cluster exists and is active
-        require(clusters[_clusterId].creationTime != 0, "Cluster does not exist");
-        require(clusters[_clusterId].isActive, "Cluster is not active");
-        require(clusters[_clusterId].validUntil > block.timestamp, "Cluster has expired");
-        
-        // Verify node exists and is active based on cluster type
-        uint8 clusterType = clusters[_clusterId].clusterType;
-        if (clusterType == 0) {
-            // NAP cluster, check NID
-            require(nidRegistry.nodeExists(_nodeId), "Node does not exist");
-            require(nidRegistry.isNodeActive(_nodeId), "Node is not active");
-        } else {
-            // B-BGP cluster, check NIAS
-            require(niasRegistry.niasExists(_nodeId), "NIAS does not exist");
-            require(niasRegistry.isNIASActive(_nodeId), "NIAS is not active");
-        }
-        
-        // Verify node is not already in the cluster
-        require(memberships[_nodeId][_clusterId].joinTime == 0, "Node is already in the cluster");
-        
-        // Add node to cluster
+    function addNodeToCluster(string memory _nodeId, uint8 _clusterId) public {
+      
+        // Add node to cluster membership
         memberships[_nodeId][_clusterId] = ClusterMembership({
             nodeId: _nodeId,
             clusterId: _clusterId,
@@ -200,8 +125,20 @@ contract ClusteringContract {
             isActive: true
         });
         
-        // Update cluster members and node clusters
+        // Verify node is not already in cluster members
+        bool nodeExists = false;
+        for (uint i = 0; i < clusterMembers[_clusterId].length; i++) {
+            if (keccak256(bytes(clusterMembers[_clusterId][i])) == keccak256(bytes(_nodeId))) {
+                nodeExists = true;
+                break;
+            }
+        }
+        require(!nodeExists, "Node already in cluster members");
+        
+        // Add to cluster members
         clusterMembers[_clusterId].push(_nodeId);
+        
+        // Add cluster to node's clusters
         nodeClusters[_nodeId].push(_clusterId);
         
         // Update cluster node count
@@ -210,12 +147,7 @@ contract ClusteringContract {
         emit NodeAddedToCluster(_nodeId, _clusterId);
     }
     
-    /**
-     * @dev Remove a node from a cluster
-     * @param _nodeId Node ID
-     * @param _clusterId Cluster ID
-     */
-    function removeNodeFromCluster(bytes32 _nodeId, uint8 _clusterId) public {
+    function removeNodeFromCluster(string memory _nodeId, uint8 _clusterId) public {
         // Verify node is in the cluster
         require(memberships[_nodeId][_clusterId].joinTime != 0, "Node is not in the cluster");
         require(memberships[_nodeId][_clusterId].isActive, "Node is not active in the cluster");
@@ -224,10 +156,10 @@ contract ClusteringContract {
         memberships[_nodeId][_clusterId].isActive = false;
         
         // Remove node from cluster members
-        removeFromClusterMembers(_nodeId, _clusterId);
+        _removeFromClusterMembers(_nodeId, _clusterId);
         
         // Remove cluster from node clusters
-        removeFromNodeClusters(_clusterId, _nodeId);
+        _removeFromNodeClusters(_clusterId, _nodeId);
         
         // Update cluster node count
         clusters[_clusterId].nodeCount--;
@@ -235,16 +167,11 @@ contract ClusteringContract {
         emit NodeRemovedFromCluster(_nodeId, _clusterId);
     }
     
-    /**
-     * @dev Helper function to remove node from cluster members
-     * @param _nodeId Node ID
-     * @param _clusterId Cluster ID
-     */
-    function removeFromClusterMembers(bytes32 _nodeId, uint8 _clusterId) internal {
-        bytes32[] storage members = clusterMembers[_clusterId];
+    function _removeFromClusterMembers(string memory _nodeId, uint8 _clusterId) internal {
+        string[] storage members = clusterMembers[_clusterId];
         
         for (uint i = 0; i < members.length; i++) {
-            if (members[i] == _nodeId) {
+            if (keccak256(bytes(members[i])) == keccak256(bytes(_nodeId))) {
                 // Swap with the last element and then remove the last element
                 members[i] = members[members.length - 1];
                 members.pop();
@@ -253,60 +180,19 @@ contract ClusteringContract {
         }
     }
     
-    /**
-     * @dev Helper function to remove cluster from node clusters
-     * @param _clusterId Cluster ID
-     * @param _nodeId Node ID
-     */
-    function removeFromNodeClusters(uint8 _clusterId, bytes32 _nodeId) internal {
-        uint8[] storage clusters = nodeClusters[_nodeId];
+    function _removeFromNodeClusters(uint8 _clusterId, string memory _nodeId) internal {
+        uint8[] storage nodeClusterList = nodeClusters[_nodeId];
         
-        for (uint i = 0; i < clusters.length; i++) {
-            if (clusters[i] == _clusterId) {
+        for (uint i = 0; i < nodeClusterList.length; i++) {
+            if (nodeClusterList[i] == _clusterId) {
                 // Swap with the last element and then remove the last element
-                clusters[i] = clusters[clusters.length - 1];
-                clusters.pop();
+                nodeClusterList[i] = nodeClusterList[nodeClusterList.length - 1];
+                nodeClusterList.pop();
                 break;
             }
         }
     }
     
-    /**
-     * @dev Update cluster metrics
-     * @param _clusterId Cluster ID
-     * @param _avgLatency Average latency
-     * @param _avgBandwidth Average bandwidth
-     * @param _avgSecurityLevel Average security level
-     * @param _successfulTransmissions Number of successful transmissions
-     * @param _failedTransmissions Number of failed transmissions
-     */
-    function updateClusterMetrics(
-        uint8 _clusterId,
-        uint16 _avgLatency,
-        uint16 _avgBandwidth,
-        uint8 _avgSecurityLevel,
-        uint256 _successfulTransmissions,
-        uint256 _failedTransmissions
-    ) public {
-        // Verify cluster exists
-        require(clusters[_clusterId].creationTime != 0, "Cluster does not exist");
-        
-        // Update metrics
-        clusterMetrics[_clusterId].avgLatency = _avgLatency;
-        clusterMetrics[_clusterId].avgBandwidth = _avgBandwidth;
-        clusterMetrics[_clusterId].avgSecurityLevel = _avgSecurityLevel;
-        clusterMetrics[_clusterId].successfulTransmissions = _successfulTransmissions;
-        clusterMetrics[_clusterId].failedTransmissions = _failedTransmissions;
-        clusterMetrics[_clusterId].lastUpdated = block.timestamp;
-        
-        emit ClusterMetricsUpdated(_clusterId, _avgLatency, _avgBandwidth);
-    }
-    
-    /**
-     * @dev Recluster nodes from an old cluster to a new cluster
-     * @param _oldClusterId Old cluster ID
-     * @param _newClusterId New cluster ID
-     */
     function reclusterNodes(uint8 _oldClusterId, uint8 _newClusterId) public {
         // Verify both clusters exist
         require(clusters[_oldClusterId].creationTime != 0, "Old cluster does not exist");
@@ -315,11 +201,11 @@ contract ClusteringContract {
         require(clusters[_newClusterId].validUntil > block.timestamp, "New cluster has expired");
         
         // Get nodes from old cluster
-        bytes32[] memory nodesToMove = clusterMembers[_oldClusterId];
+        string[] memory nodesToMove = clusterMembers[_oldClusterId];
         
         // Add nodes to new cluster
         for (uint i = 0; i < nodesToMove.length; i++) {
-            bytes32 nodeId = nodesToMove[i];
+            string memory nodeId = nodesToMove[i];
             
             // Skip if node is already in the new cluster
             if (memberships[nodeId][_newClusterId].joinTime != 0) {
@@ -352,88 +238,20 @@ contract ClusteringContract {
         emit ClusterReclustered(_oldClusterId, _newClusterId);
     }
     
-    /**
-     * @dev Get cluster details
-     * @param _clusterId Cluster ID
-     * @return Cluster details (clusterId, clusterName, clusterType, creationTime, validUntil, securityLevel, maxLatency, minBandwidth, isActive, nodeCount)
-     */
-    function getClusterDetails(uint8 _clusterId) public view returns (
-        uint8, string memory, uint8, uint256, uint256, uint8, uint16, uint16, bool, uint256
-    ) {
+    function getClusterMembers(uint8 _clusterId) public view returns (string[] memory) {
         require(clusters[_clusterId].creationTime != 0, "Cluster does not exist");
-        
-        Cluster memory cluster = clusters[_clusterId];
-        
-        return (
-            cluster.clusterId,
-            cluster.clusterName,
-            cluster.clusterType,
-            cluster.creationTime,
-            cluster.validUntil,
-            cluster.securityLevel,
-            cluster.maxLatency,
-            cluster.minBandwidth,
-            cluster.isActive,
-            cluster.nodeCount
-        );
-    }
-    
-    /**
-     * @dev Get cluster metrics
-     * @param _clusterId Cluster ID
-     * @return Cluster metrics (avgLatency, avgBandwidth, avgSecurityLevel, successfulTransmissions, failedTransmissions, lastUpdated)
-     */
-    function getClusterMetrics(uint8 _clusterId) public view returns (
-        uint16, uint16, uint8, uint256, uint256, uint256
-    ) {
-        require(clusters[_clusterId].creationTime != 0, "Cluster does not exist");
-        
-        ClusterMetrics memory metrics = clusterMetrics[_clusterId];
-        
-        return (
-            metrics.avgLatency,
-            metrics.avgBandwidth,
-            metrics.avgSecurityLevel,
-            metrics.successfulTransmissions,
-            metrics.failedTransmissions,
-            metrics.lastUpdated
-        );
-    }
-    
-    /**
-     * @dev Get cluster members
-     * @param _clusterId Cluster ID
-     * @return Array of node IDs in the cluster
-     */
-    function getClusterMembers(uint8 _clusterId) public view returns (bytes32[] memory) {
-        require(clusters[_clusterId].creationTime != 0, "Cluster does not exist");
-        
         return clusterMembers[_clusterId];
     }
     
-    /**
-     * @dev Get clusters for a node
-     * @param _nodeId Node ID
-     * @return Array of cluster IDs the node belongs to
-     */
-    function getNodeClusters(bytes32 _nodeId) public view returns (uint8[] memory) {
+    function getNodeClusters(string memory _nodeId) public view returns (uint8[] memory) {
         return nodeClusters[_nodeId];
     }
     
-    /**
-     * @dev Check if a node is in a cluster
-     * @param _nodeId Node ID
-     * @param _clusterId Cluster ID
-     * @return Whether the node is in the cluster
-     */
-    function isNodeInCluster(bytes32 _nodeId, uint8 _clusterId) public view returns (bool) {
-        return memberships[_nodeId][_clusterId].joinTime != 0 && memberships[_nodeId][_clusterId].isActive;
+    function isNodeInCluster(string memory _nodeId, uint8 _clusterId) public view returns (bool) {
+        return memberships[_nodeId][_clusterId].joinTime != 0 && 
+               memberships[_nodeId][_clusterId].isActive;
     }
     
-    /**
-     * @dev Get count of all clusters
-     * @return Number of clusters
-     */
     function getClusterCount() public view returns (uint256) {
         return allClusterIds.length;
     }

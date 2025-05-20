@@ -28,23 +28,3 @@ Private Keys:
 (8) 11a94bce9477132329049a92487791a257454152ab958307f24509f283a79b14
 (9) 1966fa15b8d23641c883d30be713c9786758d33d1c75b027e8ece3875096a0a0
 */
-
-const BlockchainRegistryBase =  '0xFB61F22BacF92C32a3Fa4ECcF6DB5c12Eb71654d';
-
-const BlockchainRegistry = '0x71db4933bf0342b290ada075b9b40f61Cac4A88D';
-const BlockchainMonitor =    '0x56e3b418E151A6a70262f337b5c4115415dB2592';
-const ChaCha20Poly1305 =  '0x3dB865F0181A652EE731adf92557677D609f4705';
-const MetadataParser = '0x65C7dEBC72689bEea81cC670b621fF57f97795db';
-const PacechainChannel = '0xCdB1B7246Ba7dF364C773b8311e5B905B2b23386';
-const SpeculativeTransactionHandler = '0xa6d512B846D3bcA0498C4178577d8c55900FDAFE';
-const ConfidenceScoreCalculator = '0xF352c192e1E4aA3618Df70b8de510189BF5cdd5F';
-const AssetTransferProcessor = '0x6E3372f20f931d16679bA21Ebcd63C2eAd4E1B4b';
-const TransactionValidator = '0x59b92Ab6e4054f752C7E8ac5Cb846B9eCD67F5a3';
-const RewardDistributor = '0x8c771E0dD72fF614dB5d3cf16c38D76BB4E62872';
-const RewardToken = '0x44cedb676894FC67450D51DfE4a03e7f294605C9';
-
-const ProofOfStakeValidator = '0xCe8e536957Cc8115d7c7FE8FB1b03b4Ed32a5b20';
-const   StateManager ='0xBC0EE66Cc35B3E2732D1E6301781f0A1DDb828E7';
-const TransactionRelay = '0xcdA245B0b4e2006eb200c6F2505B2c914a379D74';
-  const ReceivingBlockchainInterface = '0xAAdeB2f7B9c7285D56A06c4aA4D91Cd5d35D1030';
- 
