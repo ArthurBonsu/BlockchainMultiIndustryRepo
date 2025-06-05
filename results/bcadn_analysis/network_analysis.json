@@ -1,0 +1,29 @@
+{
+  "network_metrics": {
+    "total_nodes": 0,
+    "total_attacks": 0,
+    "resolved_attacks": 0,
+    "chain_id": 11155111,
+    "latest_block": 8132323,
+    "gas_price": 2082530516
+  },
+  "node_performance": {
+    "node_addresses": [],
+    "weights": [],
+    "statuses": [],
+    "performance_details": []
+  },
+  "attack_history": {
+    "node_addresses": [],
+    "timestamps": [],
+    "anomaly_scores": [],
+    "attack_types": [],
+    "resolved": []
+  },
+  "stress_test": {
+    "transactions": [],
+    "total_processing_time": 0.0,
+    "average_dynamic_fee": 0.0,
+    "max_congestion_index": 0
+  }
+}

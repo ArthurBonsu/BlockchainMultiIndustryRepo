@@ -1,0 +1,244 @@
+% Package requirements for these tables:
+% \usepackage{booktabs}
+% \usepackage[table]{xcolor}
+
+% Network Node Performance Table
+\begin{table}[htbp]
+\centering
+\caption{Network Node Performance}
+\label{tab:node-performance}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Node ID} & \textbf{Success Rate (\%)} & \textbf{Packet Count} \\
+\midrule
+node1 & 99 & 1074 \\
+node2 & 99 & 2539 \\
+node3 & 99 & 1814 \\
+node4 & 99 & 2129 \\
+node5 & 96 & 1606 \\
+node6 & 97 & 1027 \\
+node7 & 97 & 1242 \\
+node8 & 96 & 2461 \\
+node9 & 95 & 1385 \\
+node10 & 96 & 1176 \\
+node11 & 98 & 1583 \\
+node12 & 98 & 2568 \\
+node13 & 96 & 2456 \\
+node14 & 99 & 2374 \\
+node15 & 96 & 2376 \\
+node16 & 97 & 2577 \\
+node17 & 99 & 2769 \\
+node18 & 97 & 2162 \\
+node19 & 97 & 1802 \\
+node20 & 98 & 1573 \\
+node21 & 97 & 2967 \\
+node22 & 98 & 1803 \\
+node23 & 99 & 1179 \\
+node24 & 95 & 2250 \\
+node25 & 98 & 1693 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% Path Distribution by Service Class Table
+\begin{table}[htbp]
+\centering
+\caption{Path Distribution by Service Class}
+\label{tab:path-distribution}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Path ID} & \textbf{Service Class} & \textbf{Sequence Length} \\
+\midrule
+voip\_path\_1 & VoIP & 4 \\
+streaming\_path\_1 & Streaming & 4 \\
+standard\_path\_1 & Standard & 4 \\
+voip\_path\_2 & VoIP & 4 \\
+voip\_path\_3 & VoIP & 4 \\
+streaming\_path\_2 & Streaming & 4 \\
+streaming\_path\_3 & Streaming & 4 \\
+standard\_path\_2 & Standard & 4 \\
+standard\_path\_3 & Standard & 4 \\
+voip\_path\_4 & VoIP & 4 \\
+streaming\_path\_4 & Streaming & 4 \\
+standard\_path\_4 & Standard & 4 \\
+voip\_path\_5 & VoIP & 4 \\
+streaming\_path\_5 & Streaming & 4 \\
+high\_priority\_path\_1 & VoIP & 4 \\
+secure\_path\_1 & Standard & 4 \\
+low\_latency\_path\_1 & Streaming & 4 \\
+high\_bandwidth\_path\_1 & Streaming & 4 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% Success Rate Distribution Summary Table
+\begin{table}[htbp]
+\centering
+\caption{Success Rate Distribution Summary}
+\label{tab:success-rate-distribution}
+\begin{tabular}{cc}
+\toprule
+\textbf{Success Rate} & \textbf{Number of Nodes} \\
+\midrule
+95\% & 2 \\
+96\% & 4 \\
+97\% & 7 \\
+98\% & 5 \\
+99\% & 7 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% Service Class Summary Table
+\begin{table}[htbp]
+\centering
+\caption{Service Class Summary}
+\label{tab:service-class-summary}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Service Class} & \textbf{Number of Paths} & \textbf{Percentage} \\
+\midrule
+VoIP & 6 & 33.3\% \\
+Streaming & 7 & 38.9\% \\
+Standard & 5 & 27.8\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% Top 10 Nodes by Packet Count
+\begin{table}[htbp]
+\centering
+\caption{Top 10 Nodes by Packet Count}
+\label{tab:top-nodes}
+\begin{tabular}{clcc}
+\toprule
+\textbf{Rank} & \textbf{Node ID} & \textbf{Success Rate (\%)} & \textbf{Packet Count} \\
+\midrule
+1 & node21 & 97 & 2967 \\
+2 & node17 & 99 & 2769 \\
+3 & node16 & 97 & 2577 \\
+4 & node12 & 98 & 2568 \\
+5 & node2  & 99 & 2539 \\
+6 & node8  & 96 & 2461 \\
+7 & node13 & 96 & 2456 \\
+8 & node15 & 96 & 2376 \\
+9 & node14 & 99 & 2374 \\
+10 & node18 & 97 & 2162 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% Node Performance Classification
+\begin{table}[htbp]
+\centering
+\caption{Node Performance Classification}
+\label{tab:node-classification}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Performance Category} & \textbf{Success Rate Range} & \textbf{Number of Nodes} & \textbf{Percentage} \\
+\midrule
+High Reliability & 98-99\% & 12 & 48\% \\
+Medium Reliability & 96-97\% & 11 & 44\% \\
+Low Reliability & 95\% & 2 & 8\% \\
+\midrule
+High Traffic & $>$2000 packets & 11 & 44\% \\
+Medium Traffic & 1200-2000 packets & 9 & 36\% \\
+Low Traffic & $<$1200 packets & 5 & 20\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% Service Class Characteristics
+\begin{table}[htbp]
+\centering
+\caption{Service Class Characteristics}
+\label{tab:service-characteristics}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Service Class} & \textbf{Avg. Sequence Length} & \textbf{Paths} & \textbf{Example Use Cases} \\
+\midrule
+VoIP & 4 & 6 & Voice calls, Video conferencing \\
+Streaming & 4 & 7 & Video streaming, Live broadcasting \\
+Standard & 4 & 5 & Web browsing, File transfer \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% Color-coded Node Performance Matrix (using xcolor with table option)
+\begin{table}[htbp]
+\centering
+\caption{Node Performance Matrix}
+\label{tab:performance-matrix}
+\begin{tabular}{l|c|c|c|}
+\multicolumn{1}{c}{} & \multicolumn{3}{c}{\textbf{Traffic Level}} \\
+\cline{2-4}
+\textbf{Reliability Level} & \textbf{Low} & \textbf{Medium} & \textbf{High} \\
+\hline
+\textbf{High (98-99\%)} & \rowcolor{green!15}2 & 4 & 6 \\
+\hline
+\textbf{Medium (96-97\%)} & \rowcolor{yellow!15}3 & 3 & 5 \\
+\hline
+\textbf{Low (95\%)} & \rowcolor{red!15}0 & 2 & 0 \\
+\hline
+\end{tabular}
+\end{table}
+
+% Alternative colored table with individual cell coloring
+\begin{table}[htbp]
+\centering
+\caption{Node Performance Matrix (Alternative)}
+\label{tab:performance-matrix-alt}
+\begin{tabular}{l|c|c|c|}
+\multicolumn{1}{c}{} & \multicolumn{3}{c}{\textbf{Traffic Level}} \\
+\cline{2-4}
+\textbf{Reliability Level} & \textbf{Low} & \textbf{Medium} & \textbf{High} \\
+\hline
+\textbf{High (98-99\%)} & 2 & 4 & \cellcolor{green!25}6 \\
+\hline
+\textbf{Medium (96-97\%)} & 3 & \cellcolor{yellow!25}3 & 5 \\
+\hline
+\textbf{Low (95\%)} & 0 & \cellcolor{red!25}2 & 0 \\
+\hline
+\end{tabular}
+\end{table}
+
+% Node Usage in Paths
+\begin{table}[htbp]
+\centering
+\caption{Most Utilized Nodes in Path Routing}
+\label{tab:node-utilization}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Node ID} & \textbf{Appearance in Paths} & \textbf{Success Rate (\%)} & \textbf{Packet Count} \\
+\midrule
+node2 & 4 & 99 & 2539 \\
+node3 & 3 & 99 & 1814 \\
+node4 & 3 & 99 & 2129 \\
+node1 & 3 & 99 & 1074 \\
+node7 & 3 & 97 & 1242 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% Full document template with necessary packages
+% Uncomment if you want to use this as a standalone document
+
+%\documentclass{article}
+%\usepackage{booktabs}
+%\usepackage[table]{xcolor}
+%\usepackage{caption}
+%\usepackage{geometry}
+%\geometry{margin=1in}
+%
+%\begin{document}
+%
+%\title{SequencePathRouter Network Analysis}
+%\author{Your Name}
+%\date{\today}
+%\maketitle
+%
+%\section{Network Performance Tables}
+%
+%... insert tables here ...
+%
+%\end{document}

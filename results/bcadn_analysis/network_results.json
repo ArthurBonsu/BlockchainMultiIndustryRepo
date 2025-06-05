@@ -1,0 +1,333 @@
+{
+  "network_metrics": {},
+  "node_performance": {
+    "node_addresses": [],
+    "weights": [],
+    "statuses": [],
+    "performance_details": []
+  },
+  "attack_history": {
+    "node_addresses": [],
+    "timestamps": [],
+    "anomaly_scores": [],
+    "attack_types": [],
+    "resolved": []
+  },
+  "stress_test": {
+    "transactions": [
+      {
+        "base_fee": 1,
+        "dynamic_fee": 1,
+        "amount": 32,
+        "timestamp": 1744965661
+      },
+      {
+        "base_fee": 5,
+        "dynamic_fee": 5,
+        "amount": 98,
+        "timestamp": 1744965662
+      },
+      {
+        "base_fee": 6,
+        "dynamic_fee": 6,
+        "amount": 82,
+        "timestamp": 1744965662
+      },
+      {
+        "base_fee": 3,
+        "dynamic_fee": 3,
+        "amount": 92,
+        "timestamp": 1744965663
+      },
+      {
+        "base_fee": 2,
+        "dynamic_fee": 2,
+        "amount": 75,
+        "timestamp": 1744965663
+      },
+      {
+        "base_fee": 3,
+        "dynamic_fee": 3,
+        "amount": 2,
+        "timestamp": 1744965664
+      },
+      {
+        "base_fee": 3,
+        "dynamic_fee": 3,
+        "amount": 50,
+        "timestamp": 1744965664
+      },
+      {
+        "base_fee": 3,
+        "dynamic_fee": 3,
+        "amount": 67,
+        "timestamp": 1744965665
+      },
+      {
+        "base_fee": 5,
+        "dynamic_fee": 5,
+        "amount": 39,
+        "timestamp": 1744965673
+      },
+      {
+        "base_fee": 9,
+        "dynamic_fee": 9,
+        "amount": 30,
+        "timestamp": 1744965673
+      },
+      {
+        "base_fee": 8,
+        "dynamic_fee": 8,
+        "amount": 49,
+        "timestamp": 1744965674
+      },
+      {
+        "base_fee": 2,
+        "dynamic_fee": 2,
+        "amount": 77,
+        "timestamp": 1744965675
+      },
+      {
+        "base_fee": 3,
+        "dynamic_fee": 3,
+        "amount": 4,
+        "timestamp": 1744965683
+      },
+      {
+        "base_fee": 7,
+        "dynamic_fee": 7,
+        "amount": 62,
+        "timestamp": 1744965686
+      },
+      {
+        "base_fee": 9,
+        "dynamic_fee": 9,
+        "amount": 5,
+        "timestamp": 1744965687
+      },
+      {
+        "base_fee": 7,
+        "dynamic_fee": 7,
+        "amount": 94,
+        "timestamp": 1744965688
+      },
+      {
+        "base_fee": 7,
+        "dynamic_fee": 7,
+        "amount": 19,
+        "timestamp": 1744965689
+      },
+      {
+        "base_fee": 7,
+        "dynamic_fee": 7,
+        "amount": 77,
+        "timestamp": 1744965691
+      },
+      {
+        "base_fee": 3,
+        "dynamic_fee": 3,
+        "amount": 43,
+        "timestamp": 1744965692
+      },
+      {
+        "base_fee": 5,
+        "dynamic_fee": 5,
+        "amount": 35,
+        "timestamp": 1744965693
+      },
+      {
+        "base_fee": 3,
+        "dynamic_fee": 3,
+        "amount": 9,
+        "timestamp": 1744965694
+      },
+      {
+        "base_fee": 8,
+        "dynamic_fee": 8,
+        "amount": 38,
+        "timestamp": 1744965695
+      },
+      {
+        "base_fee": 2,
+        "dynamic_fee": 2,
+        "amount": 90,
+        "timestamp": 1744965696
+      },
+      {
+        "base_fee": 10,
+        "dynamic_fee": 10,
+        "amount": 61,
+        "timestamp": 1744965697
+      },
+      {
+        "base_fee": 9,
+        "dynamic_fee": 9,
+        "amount": 19,
+        "timestamp": 1744965698
+      },
+      {
+        "base_fee": 8,
+        "dynamic_fee": 8,
+        "amount": 18,
+        "timestamp": 1744965699
+      },
+      {
+        "base_fee": 8,
+        "dynamic_fee": 8,
+        "amount": 64,
+        "timestamp": 1744965701
+      },
+      {
+        "base_fee": 8,
+        "dynamic_fee": 8,
+        "amount": 86,
+        "timestamp": 1744965702
+      },
+      {
+        "base_fee": 3,
+        "dynamic_fee": 3,
+        "amount": 64,
+        "timestamp": 1744965703
+      },
+      {
+        "base_fee": 10,
+        "dynamic_fee": 10,
+        "amount": 34,
+        "timestamp": 1744965704
+      },
+      {
+        "base_fee": 5,
+        "dynamic_fee": 5,
+        "amount": 48,
+        "timestamp": 1744965705
+      },
+      {
+        "base_fee": 9,
+        "dynamic_fee": 9,
+        "amount": 21,
+        "timestamp": 1744965706
+      },
+      {
+        "base_fee": 1,
+        "dynamic_fee": 1,
+        "amount": 95,
+        "timestamp": 1744965707
+      },
+      {
+        "base_fee": 2,
+        "dynamic_fee": 2,
+        "amount": 64,
+        "timestamp": 1744965709
+      },
+      {
+        "base_fee": 5,
+        "dynamic_fee": 5,
+        "amount": 65,
+        "timestamp": 1744965710
+      },
+      {
+        "base_fee": 5,
+        "dynamic_fee": 5,
+        "amount": 76,
+        "timestamp": 1744965711
+      },
+      {
+        "base_fee": 8,
+        "dynamic_fee": 8,
+        "amount": 81,
+        "timestamp": 1744965712
+      },
+      {
+        "base_fee": 6,
+        "dynamic_fee": 6,
+        "amount": 18,
+        "timestamp": 1744965713
+      },
+      {
+        "base_fee": 3,
+        "dynamic_fee": 3,
+        "amount": 2,
+        "timestamp": 1744965714
+      },
+      {
+        "base_fee": 4,
+        "dynamic_fee": 4,
+        "amount": 61,
+        "timestamp": 1744965715
+      },
+      {
+        "base_fee": 6,
+        "dynamic_fee": 6,
+        "amount": 61,
+        "timestamp": 1744965716
+      },
+      {
+        "base_fee": 8,
+        "dynamic_fee": 8,
+        "amount": 58,
+        "timestamp": 1744965717
+      },
+      {
+        "base_fee": 10,
+        "dynamic_fee": 10,
+        "amount": 40,
+        "timestamp": 1744965718
+      },
+      {
+        "base_fee": 4,
+        "dynamic_fee": 4,
+        "amount": 96,
+        "timestamp": 1744965719
+      },
+      {
+        "base_fee": 3,
+        "dynamic_fee": 3,
+        "amount": 98,
+        "timestamp": 1744965720
+      },
+      {
+        "base_fee": 2,
+        "dynamic_fee": 2,
+        "amount": 47,
+        "timestamp": 1744965721
+      },
+      {
+        "base_fee": 3,
+        "dynamic_fee": 3,
+        "amount": 67,
+        "timestamp": 1744965723
+      },
+      {
+        "base_fee": 7,
+        "dynamic_fee": 7,
+        "amount": 13,
+        "timestamp": 1744965724
+      },
+      {
+        "base_fee": 4,
+        "dynamic_fee": 4,
+        "amount": 18,
+        "timestamp": 1744965725
+      },
+      {
+        "base_fee": 5,
+        "dynamic_fee": 5,
+        "amount": 100,
+        "timestamp": 1744965726
+      }
+    ],
+    "total_processing_time": 0,
+    "average_dynamic_fee": 5.34,
+    "max_congestion_index": 99.8257883167176,
+    "successful_transactions": 50,
+    "failed_transactions": 0,
+    "average_gas_used": 0,
+    "total_gas_cost": 0,
+    "summary": {
+      "total_transactions": 50,
+      "success_rate": 1.0,
+      "average_dynamic_fee": 5.34,
+      "max_congestion_index": 99.8257883167176
+    }
+  }
+}

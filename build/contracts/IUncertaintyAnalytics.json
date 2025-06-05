@@ -1,0 +1,515 @@
+{
+  "contractName": "IUncertaintyAnalytics",
+  "abi": [
+    {
+      "inputs": [],
+      "name": "submitRequest",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "requestId",
+          "type": "uint256"
+        }
+      ],
+      "name": "submitResponse",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "requestId",
+          "type": "uint256"
+        }
+      ],
+      "name": "calculateUnavailabilityCost",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getMetrics",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "avgProcessingTime",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "successRate",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "totalCost",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "disruptionCount",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "metadata": "{\"compiler\":{\"version\":\"0.8.20+commit.a1b79de6\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"requestId\",\"type\":\"uint256\"}],\"name\":\"calculateUnavailabilityCost\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getMetrics\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"avgProcessingTime\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"successRate\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"totalCost\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"disruptionCount\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"submitRequest\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"requestId\",\"type\":\"uint256\"}],\"name\":\"submitResponse\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{\"calculateUnavailabilityCost(uint256)\":{\"params\":{\"requestId\":\"The ID of the request\"}},\"getMetrics()\":{\"returns\":{\"avgProcessingTime\":\"Average processing time of all responses\",\"disruptionCount\":\"Number of failed transactions\",\"successRate\":\"Percentage of successful requests\",\"totalCost\":\"Total cost of all transactions\"}},\"submitRequest()\":{\"returns\":{\"_0\":\"requestId The ID of the newly created request\"}},\"submitResponse(uint256)\":{\"params\":{\"requestId\":\"The ID of the request to respond to\"}}},\"title\":\"IUncertaintyAnalytics\",\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{\"calculateUnavailabilityCost(uint256)\":{\"notice\":\"Calculate the unavailability cost for a request\"},\"getMetrics()\":{\"notice\":\"Get metrics about the system\"},\"submitRequest()\":{\"notice\":\"Submit a new request\"},\"submitResponse(uint256)\":{\"notice\":\"Submit a response to a request\"}},\"notice\":\"Interface for the UncertaintyAnalytics contract\",\"version\":1}},\"settings\":{\"compilationTarget\":{\"project:/contracts/IUncertaintyAnalytics.sol\":\"IUncertaintyAnalytics\"},\"evmVersion\":\"shanghai\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[]},\"sources\":{\"project:/contracts/IUncertaintyAnalytics.sol\":{\"keccak256\":\"0xbd9ea91f9379199f74e7f7faa21771b65fa085173b936ef2bc32378aaf9985b2\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://d85e5a3c7a93e035b89b710f13f0bae82c88b2ca7ae24f410a916ddd31026af2\",\"dweb:/ipfs/QmYEo3azwps4qschZgwBeNBogBksSbc7GMtngtPSWysLdW\"]}},\"version\":1}",
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "immutableReferences": {},
+  "generatedSources": [],
+  "deployedGeneratedSources": [],
+  "sourceMap": "",
+  "deployedSourceMap": "",
+  "source": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\n\n/**\n * @title IUncertaintyAnalytics\n * @notice Interface for the UncertaintyAnalytics contract\n */\ninterface IUncertaintyAnalytics {\n    /**\n     * @notice Submit a new request\n     * @return requestId The ID of the newly created request\n     */\n    function submitRequest() external payable returns (uint256);\n    \n    /**\n     * @notice Submit a response to a request\n     * @param requestId The ID of the request to respond to\n     */\n    function submitResponse(uint256 requestId) external;\n    \n    /**\n     * @notice Calculate the unavailability cost for a request\n     * @param requestId The ID of the request\n     */\n    function calculateUnavailabilityCost(uint256 requestId) external;\n    \n    /**\n     * @notice Get metrics about the system\n     * @return avgProcessingTime Average processing time of all responses\n     * @return successRate Percentage of successful requests\n     * @return totalCost Total cost of all transactions\n     * @return disruptionCount Number of failed transactions\n     */\n    function getMetrics() external view returns (\n        uint256 avgProcessingTime,\n        uint256 successRate,\n        uint256 totalCost,\n        uint256 disruptionCount\n    );\n}",
+  "sourcePath": "C:\\Users\\Bonsu\\Documents\\Blockchain Multi Industrial Service Center\\Blockchain MultiIndustrial Projects\\BlockchainMultiIndustryRepo\\contracts\\IUncertaintyAnalytics.sol",
+  "ast": {
+    "absolutePath": "project:/contracts/IUncertaintyAnalytics.sol",
+    "exportedSymbols": {
+      "IUncertaintyAnalytics": [
+        5788
+      ]
+    },
+    "id": 5789,
+    "license": "MIT",
+    "nodeType": "SourceUnit",
+    "nodes": [
+      {
+        "id": 5756,
+        "literals": [
+          "solidity",
+          "^",
+          "0.8",
+          ".0"
+        ],
+        "nodeType": "PragmaDirective",
+        "src": "32:23:21"
+      },
+      {
+        "abstract": false,
+        "baseContracts": [],
+        "canonicalName": "IUncertaintyAnalytics",
+        "contractDependencies": [],
+        "contractKind": "interface",
+        "documentation": {
+          "id": 5757,
+          "nodeType": "StructuredDocumentation",
+          "src": "57:98:21",
+          "text": " @title IUncertaintyAnalytics\n @notice Interface for the UncertaintyAnalytics contract"
+        },
+        "fullyImplemented": false,
+        "id": 5788,
+        "linearizedBaseContracts": [
+          5788
+        ],
+        "name": "IUncertaintyAnalytics",
+        "nameLocation": "166:21:21",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "documentation": {
+              "id": 5758,
+              "nodeType": "StructuredDocumentation",
+              "src": "194:108:21",
+              "text": " @notice Submit a new request\n @return requestId The ID of the newly created request"
+            },
+            "functionSelector": "599606c1",
+            "id": 5763,
+            "implemented": false,
+            "kind": "function",
+            "modifiers": [],
+            "name": "submitRequest",
+            "nameLocation": "316:13:21",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 5759,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "329:2:21"
+            },
+            "returnParameters": {
+              "id": 5762,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 5761,
+                  "mutability": "mutable",
+                  "name": "",
+                  "nameLocation": "-1:-1:-1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 5763,
+                  "src": "358:7:21",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 5760,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "358:7:21",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "357:9:21"
+            },
+            "scope": 5788,
+            "src": "307:60:21",
+            "stateMutability": "payable",
+            "virtual": false,
+            "visibility": "external"
+          },
+          {
+            "documentation": {
+              "id": 5764,
+              "nodeType": "StructuredDocumentation",
+              "src": "377:117:21",
+              "text": " @notice Submit a response to a request\n @param requestId The ID of the request to respond to"
+            },
+            "functionSelector": "bada5cd9",
+            "id": 5769,
+            "implemented": false,
+            "kind": "function",
+            "modifiers": [],
+            "name": "submitResponse",
+            "nameLocation": "508:14:21",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 5767,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 5766,
+                  "mutability": "mutable",
+                  "name": "requestId",
+                  "nameLocation": "531:9:21",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 5769,
+                  "src": "523:17:21",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 5765,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "523:7:21",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "522:19:21"
+            },
+            "returnParameters": {
+              "id": 5768,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "550:0:21"
+            },
+            "scope": 5788,
+            "src": "499:52:21",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "external"
+          },
+          {
+            "documentation": {
+              "id": 5770,
+              "nodeType": "StructuredDocumentation",
+              "src": "561:120:21",
+              "text": " @notice Calculate the unavailability cost for a request\n @param requestId The ID of the request"
+            },
+            "functionSelector": "3bd67b5a",
+            "id": 5775,
+            "implemented": false,
+            "kind": "function",
+            "modifiers": [],
+            "name": "calculateUnavailabilityCost",
+            "nameLocation": "695:27:21",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 5773,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 5772,
+                  "mutability": "mutable",
+                  "name": "requestId",
+                  "nameLocation": "731:9:21",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 5775,
+                  "src": "723:17:21",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 5771,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "723:7:21",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "722:19:21"
+            },
+            "returnParameters": {
+              "id": 5774,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "750:0:21"
+            },
+            "scope": 5788,
+            "src": "686:65:21",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "external"
+          },
+          {
+            "documentation": {
+              "id": 5776,
+              "nodeType": "StructuredDocumentation",
+              "src": "761:307:21",
+              "text": " @notice Get metrics about the system\n @return avgProcessingTime Average processing time of all responses\n @return successRate Percentage of successful requests\n @return totalCost Total cost of all transactions\n @return disruptionCount Number of failed transactions"
+            },
+            "functionSelector": "7606f781",
+            "id": 5787,
+            "implemented": false,
+            "kind": "function",
+            "modifiers": [],
+            "name": "getMetrics",
+            "nameLocation": "1082:10:21",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 5777,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "1092:2:21"
+            },
+            "returnParameters": {
+              "id": 5786,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 5779,
+                  "mutability": "mutable",
+                  "name": "avgProcessingTime",
+                  "nameLocation": "1135:17:21",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 5787,
+                  "src": "1127:25:21",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 5778,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1127:7:21",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 5781,
+                  "mutability": "mutable",
+                  "name": "successRate",
+                  "nameLocation": "1170:11:21",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 5787,
+                  "src": "1162:19:21",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 5780,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1162:7:21",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 5783,
+                  "mutability": "mutable",
+                  "name": "totalCost",
+                  "nameLocation": "1199:9:21",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 5787,
+                  "src": "1191:17:21",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 5782,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1191:7:21",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 5785,
+                  "mutability": "mutable",
+                  "name": "disruptionCount",
+                  "nameLocation": "1226:15:21",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 5787,
+                  "src": "1218:23:21",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 5784,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1218:7:21",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "1117:130:21"
+            },
+            "scope": 5788,
+            "src": "1073:175:21",
+            "stateMutability": "view",
+            "virtual": false,
+            "visibility": "external"
+          }
+        ],
+        "scope": 5789,
+        "src": "156:1094:21",
+        "usedErrors": [],
+        "usedEvents": []
+      }
+    ],
+    "src": "32:1218:21"
+  },
+  "compiler": {
+    "name": "solc",
+    "version": "0.8.20+commit.a1b79de6.Emscripten.clang"
+  },
+  "networks": {},
+  "schemaVersion": "3.4.16",
+  "updatedAt": "2025-05-20T13:40:34.705Z",
+  "devdoc": {
+    "kind": "dev",
+    "methods": {
+      "calculateUnavailabilityCost(uint256)": {
+        "params": {
+          "requestId": "The ID of the request"
+        }
+      },
+      "getMetrics()": {
+        "returns": {
+          "avgProcessingTime": "Average processing time of all responses",
+          "disruptionCount": "Number of failed transactions",
+          "successRate": "Percentage of successful requests",
+          "totalCost": "Total cost of all transactions"
+        }
+      },
+      "submitRequest()": {
+        "returns": {
+          "_0": "requestId The ID of the newly created request"
+        }
+      },
+      "submitResponse(uint256)": {
+        "params": {
+          "requestId": "The ID of the request to respond to"
+        }
+      }
+    },
+    "title": "IUncertaintyAnalytics",
+    "version": 1
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {
+      "calculateUnavailabilityCost(uint256)": {
+        "notice": "Calculate the unavailability cost for a request"
+      },
+      "getMetrics()": {
+        "notice": "Get metrics about the system"
+      },
+      "submitRequest()": {
+        "notice": "Submit a new request"
+      },
+      "submitResponse(uint256)": {
+        "notice": "Submit a response to a request"
+      }
+    },
+    "notice": "Interface for the UncertaintyAnalytics contract",
+    "version": 1
+  }
+}
